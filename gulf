@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# One-word Gulf-markets swing screener.
+#
+#   ./gulf            -> screen DFM + ADX with a 20,000 account
+#   ./gulf 50000      -> use a 50,000 account instead
+#   ./gulf 20000 0.5  -> 20,000 account, risk 0.5% per trade
+#
+# Pulls FRESH data every run and saves reports to reports/.
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+RUN="$HERE/gulf-markets-screener/scripts/run_screen.py"
+
+ACCOUNT="${1:-20000}"
+RISK="${2:-1.0}"
+
+echo "================================================================"
+echo "  GULF SWING SCREENER   account=$ACCOUNT   risk=${RISK}%/trade"
+echo "  $(date '+%Y-%m-%d %H:%M')"
+echo "================================================================"
+
+echo
+echo "########## DUBAI (DFM) — true-ATR ##########"
+python3 "$RUN" --market dfm --source yahoo --account "$ACCOUNT" --risk "$RISK"
+
+echo
+echo "########## ABU DHABI (ADX) — 52-week-aware ##########"
+# Use Twelve Data automatically if a key is present (gives ADX true-ATR too),
+# otherwise fall back to the official 52-week snapshot screen.
+if [ -n "${TWELVEDATA_API_KEY:-}" ]; then
+  python3 "$RUN" --market adx --source twelvedata --account "$ACCOUNT" --risk "$RISK"
+else
+  python3 "$RUN" --market adx --source adx-official --account "$ACCOUNT" --risk "$RISK"
+fi
+
+echo
+echo "================================================================"
+echo "  Done. Full reports saved in:  reports/"
+echo "================================================================"
