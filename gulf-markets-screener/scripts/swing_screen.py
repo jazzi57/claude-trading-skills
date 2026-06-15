@@ -59,8 +59,17 @@ def _plan(entry: float, stop: float, account: float, risk_pct: float,
 
 
 def screen_from_bars(bars: list[dict], account: float = 20000, risk_pct: float = 1.0,
-                     max_pos_pct: float = 20.0, atr_mult: float = 2.0) -> dict:
-    """Trend-template + true-ATR screen on daily OHLCV bars (oldest first)."""
+                     max_pos_pct: float = 20.0, atr_mult: float = 2.0,
+                     min_upside_pct: float = 10.0, min_headroom_pct: float = 4.0,
+                     max_price: float | None = None) -> dict:
+    """Trend-template + true-ATR screen on daily OHLCV bars (oldest first).
+
+    Quality gate (the "is there money to be made?" mix):
+      * ``min_upside_pct``   -- sell-target must be at least this %% above entry.
+      * ``min_headroom_pct`` -- must have at least this %% room up to the 52-week
+                                high (skip names pinned at their ceiling).
+      * ``max_price``        -- optional: skip shares priced above this.
+    """
     if len(bars) < 60:
         return {"candidate": False, "reason": "insufficient history"}
     o = [b["open"] for b in bars]
@@ -82,13 +91,24 @@ def screen_from_bars(bars: list[dict], account: float = 20000, risk_pct: float =
         return {"candidate": False, "reason": "not in uptrend", "ret3m": round(ret3m, 1)}
     if not (near_breakout or new_high):
         return {"candidate": False, "reason": "not near breakout", "ret3m": round(ret3m, 1)}
+    if max_price is not None and px > max_price:
+        return {"candidate": False, "reason": f"price > {max_price}"}
+
+    headroom = (hi52 - px) / px * 100
+    if headroom < min_headroom_pct:
+        return {"candidate": False, "reason": "at 52w ceiling (little room up)",
+                "to_high_pct": round(headroom, 1)}
 
     entry = max(px, hi20) * 1.001
     plan = _plan(entry, entry - atr_mult * a, account, risk_pct, max_pos_pct)
     if not plan:
         return {"candidate": False, "reason": "position too small / risk too wide"}
+    upside = (plan["target"] / plan["entry"] - 1) * 100
+    if upside < min_upside_pct:
+        return {"candidate": False, "reason": f"upside {upside:.0f}% < {min_upside_pct:.0f}%"}
     plan.update({"candidate": True, "price": round(px, 3), "atr": round(a, 3),
-                 "ret3m": round(ret3m, 1),
+                 "ret3m": round(ret3m, 1), "upside_pct": round(upside, 1),
+                 "to_high_pct": round(headroom, 1),
                  "ext_pct": round((px - hi20) / hi20 * 100, 1),
                  "method": "trend-template + true-ATR"})
     return plan
@@ -97,7 +117,9 @@ def screen_from_bars(bars: list[dict], account: float = 20000, risk_pct: float =
 def screen_from_snapshot(close: float, prev_close: float, high: float, low: float,
                          h52: float, l52: float, change_pct: float,
                          account: float = 20000, risk_pct: float = 1.0,
-                         max_pos_pct: float = 20.0) -> dict:
+                         max_pos_pct: float = 20.0, min_upside_pct: float = 10.0,
+                         min_headroom_pct: float = 4.0,
+                         max_price: float | None = None) -> dict:
     """52-week-positioning screen for snapshot-only data (ADX official feed)."""
     if close <= 0 or h52 <= 0 or l52 <= 0 or high <= 0:
         return {"candidate": False, "reason": "bad snapshot"}
@@ -107,15 +129,24 @@ def screen_from_snapshot(close: float, prev_close: float, high: float, low: floa
     if not (near_high and pos52 >= 0.55 and change_pct >= -1):
         return {"candidate": False, "reason": "not near 52w high / not in uptrend",
                 "pos52": round(pos52 * 100)}
+    if max_price is not None and close > max_price:
+        return {"candidate": False, "reason": f"price > {max_price}"}
+    headroom = (h52 - close) / close * 100
+    if headroom < min_headroom_pct:
+        return {"candidate": False, "reason": "at 52w ceiling (little room up)",
+                "to_high_pct": round(headroom, 1)}
     entry = max(high, close) * 1.001
     srng = (high - low) / close if close > 0 else 0.06
     stop_pct = min(max(srng, 0.05), 0.12)            # 5%..12% volatility-adaptive
     plan = _plan(entry, entry * (1 - stop_pct), account, risk_pct, max_pos_pct)
     if not plan:
         return {"candidate": False, "reason": "position too small"}
+    upside = (plan["target"] / plan["entry"] - 1) * 100
+    if upside < min_upside_pct:
+        return {"candidate": False, "reason": f"upside {upside:.0f}% < {min_upside_pct:.0f}%"}
     plan.update({"candidate": True, "price": round(close, 3),
-                 "pos52": round(pos52 * 100),
-                 "to_high_pct": round((h52 - close) / close * 100, 1),
+                 "pos52": round(pos52 * 100), "upside_pct": round(upside, 1),
+                 "to_high_pct": round(headroom, 1),
                  "change_pct": round(change_pct, 1),
                  "method": "52w-positioning (snapshot)"})
     return plan

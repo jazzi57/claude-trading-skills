@@ -25,6 +25,29 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import data_sources as ds           # noqa: E402
 import swing_screen as ss           # noqa: E402
 
+_HERE = os.path.dirname(os.path.abspath(__file__))
+
+
+def _load_exclusions(extra: str | None) -> set[str]:
+    """Tickers to drop: the exclusions.txt file + any --exclude CSV."""
+    out = set()
+    path = os.path.join(_HERE, "exclusions.txt")
+    if os.path.exists(path):
+        for line in open(path):
+            tok = line.split("#", 1)[0].strip().upper()
+            if tok:
+                out.add(tok)
+    for tok in (extra or "").split(","):
+        if tok.strip():
+            out.add(tok.strip().upper())
+    return out
+
+
+def _bar_kwargs(args):
+    return dict(account=args.account, risk_pct=args.risk, max_pos_pct=args.max_pos,
+                min_upside_pct=args.min_upside, min_headroom_pct=args.min_headroom,
+                max_price=args.max_price)
+
 
 def _rows_dfm_yahoo(args):
     uni = ds.dfm_universe()
@@ -33,7 +56,7 @@ def _rows_dfm_yahoo(args):
     for u in uni:
         bars = ds.yahoo_daily(u["symbol"], ".AE", rng="1y")
         time.sleep(0.1)
-        res = ss.screen_from_bars(bars, args.account, args.risk, args.max_pos)
+        res = ss.screen_from_bars(bars, **_bar_kwargs(args))
         res.update(symbol=u["symbol"], name=u["name"],
                    value_m=round(u["value"] / 1e6, 1))
         rows.append(res)
@@ -51,7 +74,7 @@ def _rows_twelvedata(args, exchange):
     for sym, name, val in syms:
         bars = ds.twelvedata_daily(sym, exchange, args.api_key)
         time.sleep(0.1)
-        res = ss.screen_from_bars(bars, args.account, args.risk, args.max_pos)
+        res = ss.screen_from_bars(bars, **_bar_kwargs(args))
         res.update(symbol=sym, name=name, value_m=round(val, 1))
         rows.append(res)
     return rows
@@ -72,7 +95,9 @@ def _rows_adx_official(args):
             high=o.get("high") or 0, low=o.get("low") or 0,
             h52=o.get("52weekHigh") or 0, l52=o.get("52weekLow") or 0,
             change_pct=o.get("change") or 0,
-            account=args.account, risk_pct=args.risk, max_pos_pct=args.max_pos)
+            account=args.account, risk_pct=args.risk, max_pos_pct=args.max_pos,
+            min_upside_pct=args.min_upside, min_headroom_pct=args.min_headroom,
+            max_price=args.max_price)
         res.update(symbol=sym, name=o.get("companyID", sym),
                    value_m=round((o.get("value") or 0) / 1e6, 1))
         rows.append(res)
@@ -88,6 +113,16 @@ def main():
     ap.add_argument("--account", type=float, default=20000)
     ap.add_argument("--risk", type=float, default=1.0, help="risk %% per trade")
     ap.add_argument("--max-pos", type=float, default=20.0, help="max %% of account per position")
+    ap.add_argument("--min-upside", type=float, default=10.0,
+                    help="sell-target must be at least this %% above entry")
+    ap.add_argument("--min-headroom", type=float, default=4.0,
+                    help="require at least this %% room up to the 52-week high")
+    ap.add_argument("--max-price", type=float, default=None,
+                    help="skip shares priced above this (off by default)")
+    ap.add_argument("--min-liq", type=float, default=1.0,
+                    help="minimum daily value traded, in millions")
+    ap.add_argument("--exclude", default="",
+                    help="extra comma-separated tickers to drop (on top of exclusions.txt)")
     ap.add_argument("--api-key", default=os.environ.get("TWELVEDATA_API_KEY"))
     ap.add_argument("--output-dir", default="reports")
     args = ap.parse_args()
@@ -102,8 +137,11 @@ def main():
         ap.error(f"unsupported combination: --market {args.market} --source {args.source} "
                  f"(yahoo has no ADX coverage; adx-official is ADX-only)")
 
-    cands = sorted([r for r in rows if r.get("candidate")],
-                   key=lambda r: -r.get("value_m", 0))
+    excl = _load_exclusions(args.exclude)
+    cands = [r for r in rows if r.get("candidate")
+             and r.get("symbol", "").upper() not in excl
+             and r.get("value_m", 0) >= args.min_liq]
+    cands.sort(key=lambda r: -r.get("value_m", 0))
     today = dt.date.today().isoformat()
     os.makedirs(args.output_dir, exist_ok=True)
     base = os.path.join(args.output_dir, f"{args.market}_swing_{today}")
@@ -116,12 +154,12 @@ def main():
     lines = [f"# {args.market.upper()} Swing Screen ({args.source})",
              f"**Date:** {today}  |  **Account:** {int(args.account):,}  "
              f"|  **Risk:** {args.risk}%/trade  |  **Candidates:** {len(cands)}", "",
-             "| Ticker | BUY @ | Target | Stop | Shares | Cost | Risk | Method | Liq(M) |",
-             "|---|---|---|---|---|---|---|---|---|"]
+             "| Ticker | BUY @ | Target | Stop | Upside% | Room→52wH% | Shares | Cost | Risk | Liq(M) |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
     for r in cands:
         lines.append(f"| {r['symbol']} | {r['entry']} | {r['target']} | {r['stop']} | "
-                     f"{r['shares']} | {r['cost']:.0f} | {r['risk']} | "
-                     f"{r.get('method','')} | {r.get('value_m','')} |")
+                     f"{r.get('upside_pct','')} | {r.get('to_high_pct','')} | "
+                     f"{r['shares']} | {r['cost']:.0f} | {r['risk']} | {r.get('value_m','')} |")
     md = "\n".join(lines) + "\n"
     with open(base + ".md", "w") as f:
         f.write(md)

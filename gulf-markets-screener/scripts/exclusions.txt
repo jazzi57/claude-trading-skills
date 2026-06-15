@@ -1,0 +1,5 @@
+# Tickers to exclude from the screen — one symbol per line, '#' for comments.
+# Use this for stocks you can't actually buy or don't want suggested.
+#
+# Foreign-ownership-restricted / foreign-tranche-usually-full UAE names:
+EMIRATESNBD   # DFM — foreign ownership limit; foreign tranche typically full

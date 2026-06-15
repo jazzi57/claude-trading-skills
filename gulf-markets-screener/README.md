@@ -44,6 +44,26 @@ Reports are written to `reports/<market>_swing_<date>.md` and `.json`.
 - **Sizing:** risk `--risk`% of `--account` per trade, capped at `--max-pos`% of
   the account per position.
 
+## "Is it worth it?" filters (the quality gate)
+
+| Flag | Default | Drops a stock when… |
+|---|---|---|
+| `--min-upside` | 10 | the sell-target is less than this %% above the buy price |
+| `--min-headroom` | 4 | there's less than this %% room up to the 52-week high (pinned at its ceiling) |
+| `--max-price` | off | the share price is above this cap |
+| `--min-liq` | 1.0 | it trades less than this many millions/day (illiquid) |
+| `--exclude` | — | extra comma-separated tickers to drop |
+
+These together remove "no-juice" names (e.g. a mega-cap up only a few %% with no
+room left). `--min-upside 10 --min-headroom 4` is a sensible balanced default.
+
+## Excluding stocks you can't buy (foreign-ownership limits)
+
+Some UAE names are restricted for foreign investors (e.g. **Emirates NBD** — the
+foreign tranche is usually full). The exchange feeds don't expose live
+foreign-ownership room publicly, so those names are dropped via a maintained list:
+edit `scripts/exclusions.txt` (one ticker per line) or pass `--exclude SYM,SYM`.
+
 ## Notes / limits
 
 - All prices are **delayed** official-feed data — confirm levels at your broker.
