@@ -180,4 +180,5 @@ disclaimer.
 **Scripts:**
 
 - `skills/chart-pattern-scanner/scripts/detect_candlestick_patterns.py`
+- `skills/chart-pattern-scanner/scripts/fetch_dfm_official.py`
 - `skills/chart-pattern-scanner/scripts/generate_candle_chart.py`

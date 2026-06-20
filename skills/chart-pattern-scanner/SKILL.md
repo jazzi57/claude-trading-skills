@@ -199,6 +199,18 @@ outputs detected patterns plus an aggregated signal (text or JSON).
 Renders a candlestick chart PNG from a ticker (`yfinance`) or an OHLCV CSV, using
 `mplfinance` when available with a `matplotlib` fallback.
 
+### scripts/fetch_dfm_official.py
+Optional regional data adapter: fetches **official Dubai Financial Market (DFM)**
+daily OHLC from the exchange's public widget API (`api2.dfm.ae`) and writes
+per-symbol OHLCV CSVs that feed `detect_candlestick_patterns.py` /
+`generate_candle_chart.py`. Scrapes the public API key from dfm.ae at runtime
+(nothing hardcoded). Pure parsing/series logic is unit-tested offline.
+
+```bash
+python3 skills/chart-pattern-scanner/scripts/fetch_dfm_official.py \
+  --from 2026-01-01 --to 2026-06-19 --output-dir reports/dfm_official/
+```
+
 ### assets/scan_report_template.md
 Structured report template for the scan output.
 
