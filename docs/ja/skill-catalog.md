@@ -61,6 +61,7 @@ Claude Trading Skillsの全スキルをカテゴリ別に紹介します。各�
 | **Sector Analyst** | セクター・業種パフォーマンスチャートを分析し、マーケットサイクル理論に基づくローテーションパターンを評価 | <span class="badge badge-free">API不要</span> |
 | **Breadth Chart Analyst** | S&P 500ブレッドインデックスと上昇トレンド比率チャートで市場の健全性を診断 | <span class="badge badge-free">API不要</span> |
 | **Technical Analyst** | 週足チャートの純粋テクニカル分析。トレンド、サポート/レジスタンス、チャートパターン、モメンタム指標を識別 | <span class="badge badge-free">API不要</span> |
+| **[Chart Pattern Scanner]({{ '/ja/skills/chart-pattern-scanner/' | relative_url }})** | ローソク足チャートから古典的パターン（包み足、ハンマー、十字線、明けの明星/宵の明星、赤三兵/黒三兵）を検出し、ビジョン分析と決定論的ルールベース検出器でBUY/SELL/NEUTRALを分類。ChartScanAIのYOLOv8ローソク足検出器に着想 | <span class="badge badge-free">API不要</span> |
 | **[Market News Analyst]({{ '/ja/skills/market-news-analyst/' | relative_url }})** | WebSearch/WebFetchで過去10日間のニュースを収集。定量的インパクトスコアリングでランキング | <span class="badge badge-free">API不要</span> |
 | **Market Environment Analysis** | グローバルマクロブリーフィング。株式指数、為替、コモディティ、金利、センチメントを網羅 | <span class="badge badge-free">API不要</span> |
 | **[Market Breadth Analyzer]({{ '/ja/skills/market-breadth-analyzer/' | relative_url }})** | TraderMontyの公開CSVデータで6コンポーネントスコアリング（0-100）の市場幅評価 | <span class="badge badge-free">API不要</span> |

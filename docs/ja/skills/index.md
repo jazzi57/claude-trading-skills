@@ -27,6 +27,7 @@ permalink: /ja/skills/
 | [Breadth Chart Analyst]({{ '/ja/skills/breadth-chart-analyst/' | relative_url }}) | This skill should be used when analyzing market breadth charts, specifically the S&P 500 Breadth Index (200-Day MA ba... | <span class="badge badge-free">API不要</span> |
 | [Breakout Trade Planner]({{ '/ja/skills/breakout-trade-planner/' | relative_url }}) | Generate Minervini-style breakout trade plans from VCP screener output with worst-case risk calculation, portfolio he... | <span class="badge badge-free">API不要</span> |
 | [CANSLIM Screener]({{ '/ja/skills/canslim-screener/' | relative_url }}) ★ | Screen US stocks using William O'Neil's CANSLIM growth stock methodology | <span class="badge badge-api">FMP必須</span> |
+| [Chart Pattern Scanner]({{ '/ja/skills/chart-pattern-scanner/' | relative_url }}) | This skill should be used when scanning candlestick charts for classic patterns (engulfing, hammer, doji, morning/eve... | <span class="badge badge-free">API不要</span> |
 | [Data Quality Checker]({{ '/ja/skills/data-quality-checker/' | relative_url }}) | Validate data quality in market analysis documents and blog articles before publication | <span class="badge badge-free">API不要</span> |
 | [Dividend Growth Pullback Screener]({{ '/ja/skills/dividend-growth-pullback-screener/' | relative_url }}) | Use this skill to find high-quality dividend growth stocks (12%+ annual dividend growth, 1 | <span class="badge badge-api">FMP必須</span> <span class="badge badge-optional">FINVIZ任意</span> |
 | [Downtrend Duration Analyzer]({{ '/ja/skills/downtrend-duration-analyzer/' | relative_url }}) | Analyze historical downtrend durations and generate interactive HTML histograms showing typical correction lengths by... | <span class="badge badge-free">API不要</span> |
@@ -78,7 +79,7 @@ permalink: /ja/skills/
 | [US Market Bubble Detector]({{ '/ja/skills/us-market-bubble-detector/' | relative_url }}) ★ | Evaluates market bubble risk through quantitative data-driven analysis using the revised Minsky/Kindleberger framewor... | <span class="badge badge-free">API不要</span> |
 | [US Stock Analysis]({{ '/ja/skills/us-stock-analysis/' | relative_url }}) ★ | Comprehensive US stock analysis including fundamental analysis (financial metrics, business quality, valuation), tech... | <span class="badge badge-free">API不要</span> |
 | [Value Dividend Screener]({{ '/ja/skills/value-dividend-screener/' | relative_url }}) | Screen US stocks for high-quality dividend opportunities combining value characteristics (P/E ratio under 20, P/B rat... | <span class="badge badge-api">FMP必須</span> <span class="badge badge-optional">FINVIZ任意</span> |
-| [VCP Screener]({{ '/ja/skills/vcp-screener/' | relative_url }}) ★ | Screen S&P 500 stocks for Mark Minervini's Volatility Contraction Pattern (VCP) | <span class="badge badge-api">FMP必須</span> |
+| [VCP Screener]({{ '/ja/skills/vcp-screener/' | relative_url }}) ★ | Screen S&P 500 stocks for Mark Minervini's Volatility Contraction Pattern (VCP) and detect historical VCPs in a singl... | <span class="badge badge-api">FMP必須</span> |
 
 ★ = 使用例・トラブルシューティング・CLIリファレンスを含む詳細ガイド
 

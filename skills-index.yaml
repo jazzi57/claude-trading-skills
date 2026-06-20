@@ -90,6 +90,35 @@ skills:
   - composite_scores
   workflows:
   - swing-opportunity-daily
+- id: chart-pattern-scanner
+  display_name: Chart Pattern Scanner
+  category: swing-opportunity
+  status: production
+  summary: Scan candlestick charts for classic patterns (engulfing, hammer, doji, morning/evening star,
+    three soldiers/crows) and classify the setup as BUY/SELL/NEUTRAL via vision plus a deterministic
+    rule-based detector. Inspired by ChartScanAI's YOLOv8 candlestick detector.
+  timeframe: daily
+  difficulty: intermediate
+  integrations:
+  - id: chart_image
+    type: image
+    requirement: optional
+    note: Candlestick chart screenshot input (vision-based scan)
+  - id: ohlcv_csv
+    type: local_file
+    requirement: optional
+    note: OHLCV CSV for the deterministic detector; works offline
+  - id: yfinance
+    type: market_data
+    requirement: not_required
+    note: Optional ticker fetch for chart generation; no API key
+  inputs:
+  - candlestick_chart_image
+  - ohlcv_data
+  outputs:
+  - pattern_scan_report
+  - buy_sell_signal
+  workflows: []
 - id: data-quality-checker
   display_name: Data Quality Checker
   category: meta

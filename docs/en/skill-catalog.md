@@ -61,6 +61,7 @@ A comprehensive catalog of all 55 Claude Trading Skills organized by category. B
 | **Sector Analyst** | Analyzes sector/industry performance charts to assess market positioning and rotation patterns based on market cycle theory (Early/Mid/Late Cycle, Recession) | <span class="badge badge-free">No API</span> |
 | **Breadth Chart Analyst** | Analyzes S&P 500 Breadth Index and Uptrend Stock Ratio charts for market health. Identifies bull market phases: Healthy Breadth, Narrowing, Distribution | <span class="badge badge-free">No API</span> |
 | **Technical Analyst** | Pure technical analysis of weekly price charts. Identifies trends, support/resistance, chart patterns, and momentum indicators. Covers Elliott Wave, Dow Theory, candlesticks | <span class="badge badge-free">No API</span> |
+| **[Chart Pattern Scanner]({{ '/en/skills/chart-pattern-scanner/' | relative_url }})** | Scans candlestick charts for classic patterns (engulfing, hammer, doji, morning/evening star, three soldiers/crows) and classifies BUY/SELL/NEUTRAL via vision plus a deterministic rule-based detector. Inspired by ChartScanAI's YOLOv8 candlestick detector | <span class="badge badge-free">No API</span> |
 | **[Market News Analyst]({{ '/en/skills/market-news-analyst/' | relative_url }})** | Collects and analyzes market-moving news from the past 10 days via WebSearch. Impact scoring: (Price Impact x Breadth) x Forward Significance | <span class="badge badge-free">No API</span> |
 | **Market Environment Analysis** | Comprehensive global macro briefing covering equity indices, FX, commodities, yields, and sentiment with structured reporting templates | <span class="badge badge-free">No API</span> |
 | **[Market Breadth Analyzer]({{ '/en/skills/market-breadth-analyzer/' | relative_url }})** | Quantifies market breadth health using a data-driven 6-component scoring system (0-100) from publicly available CSV data | <span class="badge badge-free">No API</span> |
@@ -256,5 +257,6 @@ A comprehensive catalog of all 55 Claude Trading Skills organized by category. B
 | Parabolic Short Trade Planner | -- | -- | -- |
 | Trading Skills Navigator | -- | -- | -- |
 | Trade Performance Coach | -- | -- | -- |
+| Chart Pattern Scanner | -- | -- | -- |
 
 "--" means not required. "Optional" means functionality is enhanced but the skill works without it.

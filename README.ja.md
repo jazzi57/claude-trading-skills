@@ -158,6 +158,7 @@ FMP / FINVIZ / Alpaca の有料サブスクをまだ持っていない場合は�
 |---|---|---|---|
 | **Breakout Trade Planner** (`breakout-trade-planner`) | Generate Minervini-style breakout trade plans from VCP screener output with worst-case risk calculation, portfolio heat management, and Alpaca-compatible order templates (stop-limit bracket for pre-placement, limit bracket for post-confi... | `local_calculation` — | production |
 | **CANSLIM Screener** (`canslim-screener`) | Screen US stocks using William O'Neil's CANSLIM growth stock methodology. | `fmp` **required** | production |
+| **Chart Pattern Scanner** (`chart-pattern-scanner`) | Scan candlestick charts for classic patterns (engulfing, hammer, doji, morning/evening star, three soldiers/crows) and classify the setup as BUY/SELL/NEUTRAL via vision plus a deterministic rule-based detector. Inspired by ChartScanAI's YOLOv8 candlestick detector. | `chart_image` optional, `ohlcv_csv` optional, `yfinance` — | production |
 | **Finviz Screener** (`finviz-screener`) | Build and open FinViz screener URLs from natural language requests. | `finviz` optional | production |
 | **Theme Detector** (`theme-detector`) | Detect and analyze trending market themes across sectors. | `fmp` optional, `finviz` _recommended_ | production |
 | **VCP Screener** (`vcp-screener`) | Screen S&P 500 stocks for Mark Minervini's Volatility Contraction Pattern (VCP). | `fmp` **required** | production |
