@@ -211,6 +211,17 @@ python3 skills/chart-pattern-scanner/scripts/fetch_dfm_official.py \
   --from 2026-01-01 --to 2026-06-19 --output-dir reports/dfm_official/
 ```
 
+### scripts/scan_dfm_market.py
+One-command DFM pipeline: **refresh official data → scan every stock → write a
+consolidated report (+ optional charts)**. Chains `fetch_dfm_official`,
+`detect_candlestick_patterns`, and `generate_candle_chart`. Pure scan/report
+logic is unit-tested offline.
+
+```bash
+python3 skills/chart-pattern-scanner/scripts/scan_dfm_market.py \
+  --from 2026-03-01 --to 2026-06-19 --charts --output-dir reports/dfm_official/
+```
+
 ### assets/scan_report_template.md
 Structured report template for the scan output.
 
