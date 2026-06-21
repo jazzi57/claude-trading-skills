@@ -222,6 +222,19 @@ python3 skills/chart-pattern-scanner/scripts/scan_dfm_market.py \
   --from 2026-03-01 --to 2026-06-19 --charts --output-dir reports/dfm_official/
 ```
 
+### scripts/backtest_patterns.py
+Backtests the detector's candlestick patterns on historical OHLCV to produce
+**empirical hit-rates** (sample size, % resolving in the pattern's direction at
+each forward horizon, average directional return) — replacing heuristic
+probabilities with evidence from the market's own history. Pure stats logic is
+unit-tested offline.
+
+```bash
+python3 skills/chart-pattern-scanner/scripts/backtest_patterns.py \
+  --series-json reports/dfm_history/_all_series.json --horizons 5,10 \
+  --output-dir reports/
+```
+
 ### assets/scan_report_template.md
 Structured report template for the scan output.
 
