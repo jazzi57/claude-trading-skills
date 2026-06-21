@@ -222,6 +222,28 @@ python3 skills/chart-pattern-scanner/scripts/scan_dfm_market.py \
   --from 2026-03-01 --to 2026-06-19 --charts --output-dir reports/dfm_official/
 ```
 
+### scripts/ingest_ohlcv.py
+Ingest an arbitrary OHLCV export (iVestor / broker / Excel / CSV — single- or
+multi-symbol, flexible column names) into the `_all_series.json` format the
+backtester and scanner consume. Use it to bring in deeper history than the free
+DFM API serves.
+
+```bash
+python3 skills/chart-pattern-scanner/scripts/ingest_ohlcv.py \
+  exports/ --output-dir reports/dfm_history/
+```
+
+### scripts/backtest_patterns.py
+Backtest every candlestick pattern on a historical series to get **empirical
+hit-rates** (sample size, % resolving in the pattern's direction at 5/10-day
+horizons, average directional return) — turning heuristic probabilities into
+data-backed ones.
+
+```bash
+python3 skills/chart-pattern-scanner/scripts/backtest_patterns.py \
+  --series-json reports/dfm_history/_all_series.json --output-dir reports/
+```
+
 ### scripts/backtest_patterns.py
 Backtests the detector's candlestick patterns on historical OHLCV to produce
 **empirical hit-rates** (sample size, % resolving in the pattern's direction at
