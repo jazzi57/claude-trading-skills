@@ -38,7 +38,7 @@ direction) against the market **base rate** and test significance.
 1. **Candlestick patterns are not a reliable standalone edge on DFM.** Most bullish patterns hit below the 45% base rate; raw bearish "wins" are mostly the down-drift, not signal.
 2. **Only `hanging_man` shows a statistically significant positive edge** (bearish, +5.6% lift) — useful as a short/exit trigger.
 3. **DFM mean-reverts against momentum extremes.** `bearish_marubozu`, `bullish_marubozu`, `tweezer_bottom`, and the engulfing patterns have large *negative* lift — price tends to reverse *against* the pattern within a week. The data-backed play is to **fade** an over-extended single-direction candle, not to chase it.
-4. **Respect the ±15% daily price limit** (`daily_limit.py`): most 2R targets span 2+ sessions and cannot fill in one day. Some securities trade tighter bands (observed: NIH at −5%); the feed does not expose per-stock limits, so ±15% is the default assumption.
+4. **Respect the asymmetric daily price limit** (`daily_limit.py`): since **~March 2026** DFM caps a session at **+15% up / −5% down** (the downside was tightened). Verified here: down-days beyond −5% run ~30–50/month through Feb 2026, then collapse to **1 (Mar), 1 (Apr), 0 (May), 0 (Jun)**, while +15% up-days persist. Implication: **short targets fill slowly** — a −13% objective needs ~3 sessions, and the most a name can fall tomorrow is −5%. The feed does not expose per-stock limits, so +15%/−5% is the default assumption (a few boards/securities may differ).
 
 ## Out-of-sample note (2026-06-22)
 On the first day after the study window, the two edges pointed the right way:

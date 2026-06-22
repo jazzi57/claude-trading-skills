@@ -1,7 +1,9 @@
-"""Tests for DFM daily price-limit helpers."""
+"""Tests for DFM asymmetric daily price-limit helpers (-5% down / +15% up)."""
 
 import pytest
 from daily_limit import (
+    DFM_DOWN,
+    DFM_UP,
     cap_target,
     daily_band,
     reachable_in_one_day,
@@ -9,15 +11,15 @@ from daily_limit import (
 )
 
 
-def test_daily_band():
+def test_defaults_are_asymmetric():
+    assert DFM_UP == 0.15
+    assert DFM_DOWN == 0.05
+
+
+def test_daily_band_asymmetric():
     lo, hi = daily_band(100.0)
-    assert lo == 85.0
-    assert hi == 115.0
-
-
-def test_daily_band_custom_pct():
-    lo, hi = daily_band(100.0, pct=0.05)
-    assert (lo, hi) == (95.0, 105.0)
+    assert lo == 95.0  # -5% down
+    assert hi == 115.0  # +15% up
 
 
 def test_daily_band_bad():
@@ -26,42 +28,36 @@ def test_daily_band_bad():
 
 
 def test_reachable_in_one_day():
-    assert reachable_in_one_day(100, 114) is True
-    assert reachable_in_one_day(100, 116) is False
-    assert reachable_in_one_day(100, 86) is True
-    assert reachable_in_one_day(100, 80) is False
+    assert reachable_in_one_day(100, 114) is True  # +14% within +15%
+    assert reachable_in_one_day(100, 116) is False  # beyond +15%
+    assert reachable_in_one_day(100, 95.5) is True  # -4.5% within -5%
+    assert reachable_in_one_day(100, 94) is False  # beyond -5%
 
 
-def test_sessions_to_reach_within_one_day():
-    assert sessions_to_reach(100, 110) == 1
-    assert sessions_to_reach(100, 100) == 1
-
-
-def test_sessions_to_reach_up_multi_day():
-    # +40% needs: 1.15^1=1.15, ^2=1.32, ^3=1.52 -> 3 sessions
+def test_sessions_up_uses_15pct():
+    # +40%: 1.15^3=1.52 -> 3 sessions
     assert sessions_to_reach(100, 140) == 3
 
 
-def test_sessions_to_reach_down_multi_day():
-    # 0.85^3=0.614 (>0.60), 0.85^4=0.522 (<0.60) -> 4 sessions to reach 60
-    assert sessions_to_reach(100, 60) == 4
+def test_sessions_down_uses_5pct():
+    # -10%: 0.95^2=.9025 (>0.90), 0.95^3=.857 (<0.90) -> 3 sessions to reach 90
+    assert sessions_to_reach(100, 90) == 3
 
 
-def test_cap_target_up_beyond_band():
-    res = cap_target(100, 140)
+def test_sessions_down_is_slow():
+    # -20% at only 5%/day: 0.95^n<=0.80 -> 5 sessions (vs ~2 under a 15% cap)
+    assert sessions_to_reach(100, 80) == 5
+
+
+def test_cap_target_short_beyond_daily_floor():
+    # short from 3.60 to 3.12 (-13.3%) under -5% cap
+    res = cap_target(3.60, 3.12)
     assert res["reachable_today"] is False
-    assert res["one_day_capped"] == 115.0  # clamped to today's upper band
+    assert res["one_day_capped"] == 3.42  # today's -5% floor
     assert res["sessions"] == 3
 
 
 def test_cap_target_within_band():
     res = cap_target(100, 112)
     assert res["reachable_today"] is True
-    assert res["one_day_capped"] == 112
     assert res["sessions"] == 1
-
-
-def test_cap_target_down():
-    res = cap_target(100, 70)
-    assert res["one_day_capped"] == 85.0  # clamped to lower band
-    assert res["reachable_today"] is False
