@@ -175,6 +175,7 @@ disclaimer.
 **References:**
 
 - `skills/chart-pattern-scanner/references/candlestick_pattern_catalog.md`
+- `skills/chart-pattern-scanner/references/dfm_backtest_findings.md`
 - `skills/chart-pattern-scanner/references/signal_classification_framework.md`
 
 **Scripts:**
