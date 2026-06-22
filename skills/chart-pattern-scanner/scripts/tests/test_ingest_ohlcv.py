@@ -1,7 +1,6 @@
 """Offline tests for the OHLCV ingester (pure parsing logic)."""
 
 import pytest
-
 from ingest_ohlcv import (
     build_series,
     detect_columns,

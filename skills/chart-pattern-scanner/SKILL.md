@@ -233,6 +233,13 @@ python3 skills/chart-pattern-scanner/scripts/ingest_ohlcv.py \
   exports/ --output-dir reports/dfm_history/
 ```
 
+### scripts/daily_limit.py
+DFM daily price-limit (circuit band) helpers — the ±15% cap on how far an
+ordinary share can move in one session. Computes the reachable band, whether a
+target is fillable today, and the **minimum sessions** a stop/target needs under
+the compounding cap (so 2R targets aren't mislabelled as one-day moves). Pure +
+unit-tested.
+
 ### scripts/backtest_patterns.py
 Backtest every candlestick pattern on a historical series to get **empirical
 hit-rates** (sample size, % resolving in the pattern's direction at 5/10-day

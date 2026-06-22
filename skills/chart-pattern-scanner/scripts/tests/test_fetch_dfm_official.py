@@ -3,7 +3,6 @@
 import datetime as dt
 
 import pytest
-
 from fetch_dfm_official import (
     add_day_to_series,
     build_form_body,
