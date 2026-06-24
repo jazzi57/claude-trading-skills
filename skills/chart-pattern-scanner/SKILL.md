@@ -240,6 +240,17 @@ target is fillable today, and the **minimum sessions** a stop/target needs under
 the compounding cap (so 2R targets aren't mislabelled as one-day moves). Pure +
 unit-tested.
 
+### scripts/single_stock_strategy.py
+A dedicated, backtested **single-stock trading mechanism** (built for Air Arabia).
+Two long-only modes — `trend` (SMA trend-follow, suits trending names) and
+`meanrev` (RSI dip-buy) — each backtested on the stock's own history with a
+buy-&-hold benchmark, plus the current signal. Pure logic unit-tested.
+
+```bash
+python3 skills/chart-pattern-scanner/scripts/single_stock_strategy.py \
+  --symbol AIRARABIA --mode trend
+```
+
 ### scripts/backtest_patterns.py
 Backtest every candlestick pattern on a historical series to get **empirical
 hit-rates** (sample size, % resolving in the pattern's direction at 5/10-day
