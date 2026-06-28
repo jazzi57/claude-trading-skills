@@ -42,10 +42,15 @@ vendored here (it is ~20 MB; this repo caps committed files at 500 KB).
 # 1. Install dependencies (a virtualenv is recommended)
 pip install -r requirements.txt
 
-# 2. Fetch real gold 5-minute bars (Yahoo GC=F, no API key; ~60-day max)
-python fetch_data.py                      # writes data/GCF_5m.csv
+# 2. One command: fetch fresh real gold bars AND backtest them
+python sunrise_ogle_xauusd.py --fetch --quiet
+```
 
-# 3. Run the backtest headless on the real data
+`--fetch` downloads fresh real OHLCV inline (Yahoo `GC=F`, no API key) right
+before the run, so you never have to manage a CSV by hand. Equivalent two-step:
+
+```bash
+python fetch_data.py                                  # writes data/GCF_5m.csv
 python sunrise_ogle_xauusd.py --data data/GCF_5m.csv --quiet
 ```
 
@@ -110,6 +115,11 @@ python sunrise_ogle_xauusd.py \
 | `--plot` | off | Show the Matplotlib chart (needs a display backend). |
 | `--quiet` | off | Suppress verbose per-bar debug output. |
 | `--no-atr-filter` | off | Disable the regime-specific ATR volatility filters (see calibration note). |
+| `--fetch` | off | Download fresh real OHLCV inline before running (overrides `--data`). |
+| `--source {yahoo,fmp}` | `yahoo` | Provider for `--fetch`. |
+| `--symbol SYM` | `GC=F`/`XAUUSD` | Ticker for `--fetch`. |
+| `--range 60d` | `60d` | Yahoo lookback for `--fetch` (≤60d for 5-min bars). |
+| `--fmp-api-key KEY` | `$FMP_API_KEY` | Key for `--fetch --source fmp`. |
 
 Strategy parameters (EMA lengths, ATR multipliers, pullback depth, window
 periods, ATR volatility filters, …) remain as module-level constants and a

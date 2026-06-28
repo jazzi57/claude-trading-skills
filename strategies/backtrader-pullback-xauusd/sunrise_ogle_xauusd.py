@@ -2883,6 +2883,7 @@ class SunriseOgle(bt.Strategy):
 
 if __name__ == '__main__':
     import argparse
+    import os
     from datetime import datetime, timedelta
 
     # ---------------------------------------------------------------
@@ -2917,6 +2918,18 @@ if __name__ == '__main__':
                           'reject all entries on a different price regime '
                           '(e.g. current gold near $4800); use this to sanity-'
                           'check the entry logic on freshly fetched data.')
+    # --- Inline real-data fetch (so one command pulls fresh data and runs) ---
+    _ap.add_argument('--fetch', action='store_true', default=False,
+                     help='Download fresh real OHLCV before running (via fetch_data.py). '
+                          'Overrides --data with the freshly fetched CSV.')
+    _ap.add_argument('--source', choices=['yahoo', 'fmp'], default='yahoo',
+                     help='Data provider for --fetch (default: yahoo, no API key)')
+    _ap.add_argument('--symbol', default=None,
+                     help='Ticker for --fetch (default: GC=F for yahoo, XAUUSD for fmp)')
+    _ap.add_argument('--range', default='60d',
+                     help='Yahoo lookback window for --fetch (max ~60d for 5m bars)')
+    _ap.add_argument('--fmp-api-key', default=os.environ.get('FMP_API_KEY'),
+                     help='FMP API key for --fetch --source fmp (or set FMP_API_KEY)')
     _args = _ap.parse_args()
 
     # Apply overrides onto the module-level constants the run harness reads.
@@ -2955,9 +2968,25 @@ if __name__ == '__main__':
                 self.lines.tp[0] = strat.take_level if strat.take_level else float('nan')
             else:
                 self.lines.sl[0] = float('nan'); self.lines.tp[0] = float('nan')
-    # Resolve the data file: explicit --data wins, else ./data/<DATA_FILENAME>
-    # next to this script (the ported layout), else the original repo layout.
-    if _args.data:
+    # Resolve the data file. With --fetch we pull fresh real OHLCV inline (one
+    # command = fresh data + backtest); otherwise explicit --data wins, else
+    # ./data/<DATA_FILENAME> next to this script, else the original repo layout.
+    if _args.fetch:
+        import fetch_data  # same directory; Python puts the script dir on sys.path
+        _symbol = _args.symbol or ('GC=F' if _args.source == 'yahoo' else 'XAUUSD')
+        print(f">> Fetching fresh data: {_symbol} via {_args.source} ...")
+        if _args.source == 'yahoo':
+            _rows = fetch_data.fetch_yahoo(_symbol, _args.range)
+        else:
+            if not _args.fmp_api_key:
+                print("ERROR: --fetch --source fmp requires --fmp-api-key or FMP_API_KEY")
+                raise SystemExit(1)
+            _rows = fetch_data.fetch_fmp(_symbol, _args.fmp_api_key)
+        DATA_FILE = (Path(__file__).resolve().parent / 'data'
+                     / f"{_symbol.replace('=', '').replace('/', '')}_5m.csv")
+        n = fetch_data.write_csv(_rows, DATA_FILE)
+        print(f">> Fetched {n} bars -> {DATA_FILE}")
+    elif _args.data:
         DATA_FILE = Path(_args.data).expanduser().resolve()
     else:
         SCRIPT_DIR = Path(__file__).resolve().parent
