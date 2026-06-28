@@ -1,0 +1,4 @@
+# Generated / large data — keep real feeds and synthetic samples out of git.
+data/*.csv
+# Trade reports written at runtime (relative to the working directory).
+temp_reports/
