@@ -31,29 +31,54 @@ vendored here (it is ~20 MB; this repo caps committed files at 500 KB).
 | File | Purpose |
 |------|---------|
 | `sunrise_ogle_xauusd.py` | The strategy + Backtrader run harness (CLI). |
-| `generate_sample_data.py` | Creates a small **synthetic** 5-min OHLCV CSV so the backtest runs out of the box. |
+| `fetch_data.py` | Downloads **real** gold 5-min OHLCV (Yahoo, keyless; or FMP). |
+| `generate_sample_data.py` | Creates a small **synthetic** 5-min OHLCV CSV so the backtest runs with no network. |
 | `requirements.txt` | Pinned dependencies from upstream (`backtrader==1.9.76.123`, NumPy, Matplotlib…). |
-| `data/` | Drop your real CSV here (git-ignored). |
+| `data/` | Fetched / generated CSVs land here (git-ignored). |
 
-## Quick start
+## Quick start (real data)
 
 ```bash
 # 1. Install dependencies (a virtualenv is recommended)
 pip install -r requirements.txt
 
-# 2. Generate a synthetic dataset (writes data/XAUUSD_5m_sample.csv)
-python generate_sample_data.py
+# 2. Fetch real gold 5-minute bars (Yahoo GC=F, no API key; ~60-day max)
+python fetch_data.py                      # writes data/GCF_5m.csv
 
-# 3. Run the backtest headless on the sample data
-python sunrise_ogle_xauusd.py --data data/XAUUSD_5m_sample.csv --quiet
+# 3. Run the backtest headless on the real data
+python sunrise_ogle_xauusd.py --data data/GCF_5m.csv --quiet
 ```
 
-The synthetic feed is a deterministic random walk — it only proves the
-pipeline runs. For meaningful results, supply a real XAUUSD 5-minute feed.
+## Fetching data
 
-## Using real data
+`fetch_data.py` writes a CSV in the strategy's exact format. It uses `requests`
+(not yfinance's curl_cffi backend), so it works behind proxies that re-terminate
+TLS.
 
-Provide any CSV with this exact header and column order:
+```bash
+python fetch_data.py                          # GC=F (COMEX gold futures), last 60d
+python fetch_data.py --range 30d              # shorter window
+python fetch_data.py --symbol XAUUSD=X        # Yahoo spot gold (volume is 0)
+python fetch_data.py --source fmp --symbol XAUUSD   # FMP (needs FMP_API_KEY)
+```
+
+| Source | Key | Symbol default | History | Notes |
+|--------|-----|----------------|---------|-------|
+| `yahoo` (default) | none | `GC=F` | ~60 days for 5-min bars | Yahoo Finance public chart endpoint. |
+| `fmp` | `FMP_API_KEY` | `XAUUSD` | longer on paid tiers | Financial Modeling Prep intraday endpoint. |
+
+> ⚠️ **Parameter calibration.** The strategy's bundled ATR volatility filters
+> use absolute thresholds tuned for the upstream 2020–2025 dataset (e.g.
+> `LONG_ATR_MAX_THRESHOLD = 2.00`, and forex-scale `SHORT_ATR_*` values like
+> `0.0004`). Today's gold trades near $4,800 with a 5-min ATR(10) around 5, so
+> those filters reject **every** entry and you'll see 0 trades. Either retune
+> the `*_ATR_*` constants at the top of `sunrise_ogle_xauusd.py` to the current
+> price regime, or pass `--no-atr-filter` to bypass them and sanity-check the
+> entry logic on freshly fetched data.
+
+## Bring your own CSV
+
+Any CSV with this exact header and column order works:
 
 ```
 Date,Time,Open,High,Low,Close,Volume
@@ -61,7 +86,7 @@ Date,Time,Open,High,Low,Close,Volume
 ```
 
 `Date` is `%Y%m%d`, `Time` is `%H:%M:%S`, bars are 5-minute. Point the runner at
-it:
+it and optionally bound the dates:
 
 ```bash
 python sunrise_ogle_xauusd.py \
@@ -81,14 +106,26 @@ python sunrise_ogle_xauusd.py \
 | `--leverage FLOAT` | `30.0` | Broker leverage. |
 | `--direction {long,short,both}` | file config | Override trading direction. |
 | `--limit-bars N` | `0` | Stop after N bars (0 = no limit). |
-| `--quick-test` | off | Reduce to the last 10 days for a fast smoke test. |
+| `--quick-test` | off | Reduce to the last 10 days for a fast smoke test (needs `--todate`). |
 | `--plot` | off | Show the Matplotlib chart (needs a display backend). |
 | `--quiet` | off | Suppress verbose per-bar debug output. |
+| `--no-atr-filter` | off | Disable the regime-specific ATR volatility filters (see calibration note). |
 
 Strategy parameters (EMA lengths, ATR multipliers, pullback depth, window
 periods, ATR volatility filters, …) remain as module-level constants and a
 `params` dict at the top of `sunrise_ogle_xauusd.py`; edit there to tune the
 strategy, exactly as upstream.
+
+## Offline / no network
+
+If you can't reach a data provider, generate a deterministic synthetic feed
+instead (a random walk — it only proves the pipeline runs, not anything about
+the strategy's edge):
+
+```bash
+python generate_sample_data.py                                   # data/XAUUSD_5m_sample.csv
+python sunrise_ogle_xauusd.py --data data/XAUUSD_5m_sample.csv --quiet
+```
 
 ## Runtime outputs
 

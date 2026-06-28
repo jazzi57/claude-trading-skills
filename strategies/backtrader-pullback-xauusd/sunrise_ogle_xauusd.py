@@ -2895,8 +2895,10 @@ if __name__ == '__main__':
     _ap.add_argument('--data', default=None,
                      help='Path to OHLCV CSV (Date,Time,Open,High,Low,Close,Volume). '
                           'Defaults to ./data/<DATA_FILENAME> next to this script.')
-    _ap.add_argument('--fromdate', default=FROMDATE, help='Backtest start YYYY-MM-DD')
-    _ap.add_argument('--todate', default=TODATE, help='Backtest end YYYY-MM-DD')
+    _ap.add_argument('--fromdate', default=None,
+                     help='Backtest start YYYY-MM-DD (default: full data range)')
+    _ap.add_argument('--todate', default=None,
+                     help='Backtest end YYYY-MM-DD (default: full data range)')
     _ap.add_argument('--cash', type=float, default=STARTING_CASH, help='Starting cash (USD)')
     _ap.add_argument('--leverage', type=float, default=30.0, help='Broker leverage')
     _ap.add_argument('--direction', choices=['long', 'short', 'both'], default=None,
@@ -2909,11 +2911,19 @@ if __name__ == '__main__':
                      help='Show the matplotlib chart (requires a display backend)')
     _ap.add_argument('--quiet', action='store_true', default=False,
                      help='Suppress verbose per-bar debug output')
+    _ap.add_argument('--no-atr-filter', action='store_true', default=False,
+                     help='Disable the ATR volatility filters. The bundled ATR '
+                          'thresholds were tuned for the original dataset and '
+                          'reject all entries on a different price regime '
+                          '(e.g. current gold near $4800); use this to sanity-'
+                          'check the entry logic on freshly fetched data.')
     _args = _ap.parse_args()
 
     # Apply overrides onto the module-level constants the run harness reads.
-    FROMDATE = _args.fromdate
-    TODATE = _args.todate
+    # When the date flags are omitted, leave them empty so the whole data
+    # range is used (the file constants targeted the original 5-year dataset).
+    FROMDATE = _args.fromdate if _args.fromdate is not None else ''
+    TODATE = _args.todate if _args.todate is not None else ''
     STARTING_CASH = _args.cash
     LIMIT_BARS = _args.limit_bars
     QUICK_TEST = _args.quick_test
@@ -2965,6 +2975,13 @@ if __name__ == '__main__':
     if _direction_long_override is not None:
         STRAT_KWARGS['long_enabled'] = _direction_long_override
         STRAT_KWARGS['short_enabled'] = _direction_short_override
+    # Optionally disable the (regime-specific) ATR volatility filters.
+    if _args.no_atr_filter:
+        STRAT_KWARGS.update(
+            long_use_atr_filter=False, long_use_atr_increment_filter=False,
+            long_use_atr_decrement_filter=False, short_use_atr_filter=False,
+            short_use_atr_increment_filter=False, short_use_atr_decrement_filter=False,
+        )
     
     if TEST_FOREX_MODE:
         # Quick test with forex calculations - reduce time period
