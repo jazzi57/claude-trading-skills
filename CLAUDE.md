@@ -223,6 +223,7 @@ The table below is **auto-generated** from `skills-index.yaml` by `scripts/gener
 | **Breadth Chart Analyst** | ❌ Not used | ❌ Not used | ❌ Not used | Chart screenshot input |
 | **Breakout Trade Planner** | ❌ Not used | ❌ Not used | ❌ Not used | Consumes VCP screener output; pure calculation + Alpaca order templates |
 | **CANSLIM Screener** | ✅ Required | ❌ Not used | ❌ Not used | US stock fundamentals via FMP |
+| **Chart Pattern Scanner** | ❌ Not used | ❌ Not used | ❌ Not used | Candlestick chart screenshot input (vision-based scan); OHLCV CSV for the deterministic detector; works offline; Optional ticker fetch for chart generation; no API key |
 | **Data Quality Checker** | ❌ Not used | ❌ Not used | ❌ Not used | Local markdown validation; works offline |
 | **Dividend Growth Pullback Screener** | ✅ Required | 🟡 Optional (Recommended) | ❌ Not used | Financial Modeling Prep API |
 | **Downtrend Duration Analyzer** | ❌ Not used | ❌ Not used | ❌ Not used | Duration analysis from market data; pure calculation |

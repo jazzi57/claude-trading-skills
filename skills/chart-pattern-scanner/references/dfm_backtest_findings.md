@@ -1,0 +1,122 @@
+# DFM Candlestick Backtest — Findings & Methodology
+
+Empirical study of the chart-pattern-scanner's candlestick patterns on the
+Dubai Financial Market (DFM). Produced from official DFM EOD data; preserved
+here because the generated reports themselves are not committed.
+
+## Dataset
+- **Source:** official DFM widget API (`api2.dfm.ae`, `SearchCompanyPrices`), via `fetch_dfm_official.py`.
+- **Coverage:** **71 symbols, ~19,650 daily bars, 2025-01-02 → 2026-06-19** (≈18 months).
+- **Limit:** the public API clamps anything before ~Jan 2025 to a frozen placeholder, so deeper history is not available from this source. The window is therefore **a single market regime** (a net down-drift).
+
+## Method
+For every occurrence of each pattern across all symbols, measure the
+**close-to-close forward outcome** at 5- and 10-day horizons (`backtest_patterns.py`),
+then compare the **hit-rate** (% that resolved in the pattern's expected
+direction) against the market **base rate** and test significance.
+
+- **Base rate (5d):** P(up) = **45%**, P(down) = **55%** — the tape drifted down, which inflates raw bearish hit-rates and depresses bullish ones.
+- **Lift** = hit-rate − base rate. **z** = (hit − base) / SE; |z| ≥ 2 ≈ 95% significant.
+
+## Key findings (5-day horizon)
+
+| Pattern | Dir | n | Hit | Base | Lift | z | Verdict |
+|---|---|---|---|---|---|---|---|
+| hanging_man | bearish | 502 | 60% | 55% | **+5.6%** | **+2.5** | **Edge (significant)** |
+| inverted_hammer | bullish | 362 | 49% | 45% | +4.2% | +1.6 | weak/none |
+| bearish_engulfing | bearish | 759 | 50% | 55% | −4.9% | −2.7 | **Contrarian (fade)** |
+| bullish_engulfing | bullish | 698 | 40% | 45% | −5.7% | −3.0 | **Contrarian** |
+| bullish_marubozu | bullish | 1733 | 38% | 45% | −6.8% | −5.7 | **Contrarian** |
+| tweezer_top | bearish | 217 | 47% | 55% | −7.3% | −2.2 | **Contrarian** |
+| shooting_star | bearish | 260 | 47% | 55% | −7.9% | −2.5 | **Contrarian** |
+| tweezer_bottom | bullish | 201 | 36% | 45% | −8.9% | −2.5 | **Contrarian** |
+| bearish_marubozu | bearish | 1577 | 44% | 55% | −10.5% | −8.4 | **Contrarian (strong)** |
+
+*(Patterns near zero lift / |z|<2 — three_white_soldiers, hammer, morning_star, harami, etc. — show no usable edge.)*
+
+## Conclusions
+1. **Candlestick patterns are not a reliable standalone edge on DFM.** Most bullish patterns hit below the 45% base rate; raw bearish "wins" are mostly the down-drift, not signal.
+2. **Only `hanging_man` shows a statistically significant positive edge** (bearish, +5.6% lift) — useful as a short/exit trigger.
+3. **DFM mean-reverts against momentum extremes.** `bearish_marubozu`, `bullish_marubozu`, `tweezer_bottom`, and the engulfing patterns have large *negative* lift — price tends to reverse *against* the pattern within a week. The data-backed play is to **fade** an over-extended single-direction candle, not to chase it.
+4. **Respect the asymmetric daily price limit** (`daily_limit.py`): since **~March 2026** DFM caps a session at **+15% up / −5% down** (the downside was tightened). Verified here: down-days beyond −5% run ~30–50/month through Feb 2026, then collapse to **1 (Mar), 1 (Apr), 0 (May), 0 (Jun)**, while +15% up-days persist. Implication: **short targets fill slowly** — a −13% objective needs ~3 sessions, and the most a name can fall tomorrow is −5%. The feed does not expose per-stock limits, so +15%/−5% is the default assumption (a few boards/securities may differ).
+
+## Out-of-sample note (2026-06-22)
+On the first day after the study window, the two edges pointed the right way:
+`hanging_man` shorts fell 3 of 4; the "fade the bearish pattern" names rose 5 of 9
+(led by Emirates NBD +1.9%). One day is not significant — directional confirmation only.
+
+## Out-of-sample replication & volume confirmation (DFM bulletin, 2026-06-26)
+The official DFM **trading bulletin** export (real OHLC **+ share volume + sector**)
+extends coverage to **69 symbols, 26,197 traded bars, 2024-05-27 → 2026-06-26**
+(~25 months) — a deeper, partly out-of-sample sample with true volume. Loaded
+natively via `ingest_ohlcv.py` (`report_date`/`current_close`/`trade_volume`
+aliases; untraded O=H=L=0 sessions dropped). All prior findings replicate:
+`hanging_man` hits **61%** (5d), per-stock lag-1 autocorrelation **−0.10**
+(mean reversion), `EMAAR`~`EMAARDEV` return correlation **+0.67**.
+
+**Volume confirmation** (`backtest_patterns.py --volume-confirmation`; high =
+event-bar volume ≥ 1.5× its prior 20-bar average):
+
+| Pattern | Dir | bucket | n@10d | hit@10d | Read |
+|---|---|---|---|---|---|
+| hanging_man | bearish | high vol | 108 | **64%** | volume sharpens |
+| hanging_man | bearish | normal | 538 | 56% | |
+| shooting_star | bearish | high vol | 130 | **55%** | volume rescues it |
+| shooting_star | bearish | normal | 245 | 40% | |
+| bullish_engulfing | bullish | high vol | 241 | 37% | volume **hurts** |
+| bullish_engulfing | bullish | normal | 658 | 45% | |
+
+- **Volume confirms the bearish-reversal edge.** On above-average volume,
+  `hanging_man` (64% vs 56%) and `shooting_star` (55% vs 40%) hit materially
+  better — a high-volume bearish reversal is the strongest single candlestick
+  signal on DFM. `shooting_star`, contrarian on raw counts, is only useful
+  *with* volume.
+- **Volume does not help the bullish/momentum patterns.** High-volume
+  `bullish_engulfing`/`bullish_marubozu` hit *no better* (often worse) — the
+  mean-reversion-against-momentum result holds regardless of volume. A
+  high-volume up-candle is not a buy.
+
+## Pairs / relative-value: EMAAR ~ EMAARDEV (`pairs_strategy.py`)
+The correlation study's strongest pair (return corr **+0.67**) trades far better
+as a **spread** than either name does on candlesticks. Z-score the log price
+ratio over a trailing 20-bar window; enter when |z| ≥ entry, exit on reversion
+(|z| ≤ 0.5) or divergence stop (|z| ≥ 4). On 515 common bulletin bars:
+
+| entry_z | trades | win-rate | avg P&L/trade | total (additive, market-neutral) |
+|---|---|---|---|---|
+| 2.0 | 26 | **81%** | +1.85% | **+48%** |
+| 1.5 | 41 | 88% | +2.25% | +92% |
+
+- **This is the strongest edge in the study** — a mean-reverting, market-neutral
+  spread, consistent with the per-stock mean-reversion finding. The z-score uses
+  only a trailing window (no look-ahead).
+- **Caveats:** P&L assumes *both* legs are tradable — DFM retail shorting is
+  constrained, so a long-only account can only express this by overweighting the
+  cheaper leg and trimming the richer one. Close-to-close, no costs/slippage; the
+  tight ratio band makes it sensitive to a structural break (e.g. an M&A or
+  capital action that re-rates one name permanently).
+
+### Universe scan (`pairs_strategy.py --scan`)
+Scanning every pair with return correlation ≥ 0.4 ranks EMAAR~EMAARDEV mid-pack;
+several other structurally-linked names backtest higher (top by total P&L):
+
+| Pair | corr | trades | win | total P&L | Link |
+|---|---|---|---|---|---|
+| ITHMR~ALFIRDOUS | 0.58 | 23 | 91% | +87% | both small-cap financials |
+| DEYAAR~EMAARDEV | 0.41 | 23 | 83% | +65% | Dubai real-estate developers |
+| EMAARDEV~DFM | 0.48 | 22 | 73% | +55% | real estate ~ exchange |
+| DIB~DFM | 0.41 | 22 | 86% | +50% | bank ~ exchange |
+| EMAAR~EMAARDEV | 0.67 | 26 | 81% | +48% | parent ~ subsidiary |
+
+⚠️ **Multiple-comparison bias:** scanning ~2,300 pairs guarantees some high
+backtest P&L by chance. These are **candidates to investigate**, not proven
+edges — only trust a pair with a genuine economic link (same group/sector/share
+class, like EMAAR~EMAARDEV) that also holds out-of-sample. The scanner prints
+this warning in its own output.
+
+## Limitations
+- **Two regimes, still short** (25 months incl. a net down-drift) — edges may not hold in a sustained bull phase. A multi-year sample would further test robustness.
+- **Volume confirmation now tested** on the bulletin (above); the API-only feed still lacks true share volume, so refresh from the bulletin export for volume work.
+- Outcomes are **close-to-close**, ignoring intraday paths, slippage, and trading costs.
+
+*Informational/educational only — not financial advice. Past behaviour does not guarantee future results.*
