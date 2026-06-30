@@ -222,6 +222,19 @@ python3 skills/chart-pattern-scanner/scripts/scan_dfm_market.py \
   --from 2026-03-01 --to 2026-06-19 --charts --output-dir reports/dfm_official/
 ```
 
+### scripts/daily_dfm_signals.py
+The **daily actionable-signal runner**: from a freshly-ingested bulletin series
+it reports only the two edges the backtest validated — the EMAAR~EMAARDEV spread
+z-score (relative-value state) and a scan of every symbol's most recent bar(s)
+for a **high-volume** hanging_man / shooting_star reversal. Deliberately silent
+on everything else (no validated edge). Writes `DFM_daily_signals.{md,json}`.
+Pure logic unit-tested.
+
+```bash
+python3 skills/chart-pattern-scanner/scripts/daily_dfm_signals.py \
+  --series-json reports/dfm_bulletin/_all_series.json --within 1 --output-dir reports/
+```
+
 ### scripts/ingest_ohlcv.py
 Ingest an arbitrary OHLCV export (iVestor / broker / Excel / CSV — single- or
 multi-symbol, flexible column names) into the `_all_series.json` format the
