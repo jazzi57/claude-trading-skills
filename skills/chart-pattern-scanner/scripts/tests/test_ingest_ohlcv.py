@@ -88,6 +88,59 @@ def test_parse_rows_skips_blank_and_nonpositive_close():
     assert recs[0][1]["close"] == 1.5
 
 
+def test_normalize_header_bulletin_aliases():
+    # DFM bulletin export column names
+    assert normalize_header("report_date") == "date"
+    assert normalize_header("current_close") == "close"
+    assert normalize_header("last_price") == "close"
+    assert normalize_header("trade_volume") == "volume"
+    # 52-week high/low must NOT be mistaken for the daily high/low
+    assert normalize_header("52week_high") is None
+    assert normalize_header("52week_low") is None
+
+
+def test_detect_columns_prefers_earlier_alias_for_duplicates():
+    # bulletin carries both current_close and last_price (both -> close);
+    # the first header wins so the daily settlement price is used.
+    headers = ["report_date", "open", "high", "low", "current_close", "last_price", "trade_volume"]
+    cols = detect_columns(headers)
+    assert cols["close"] == 4  # current_close, not last_price
+    assert cols["date"] == 0
+    assert cols["volume"] == 6
+
+
+def test_parse_rows_bulletin_shape():
+    headers = ["symbol", "report_date", "open", "high", "low", "current_close", "trade_volume"]
+    rows = [["EMAAR", "2026-06-26 00:00:00", "12.84", "13.10", "12.74", "13.02", "1500000"]]
+    recs = parse_rows(headers, rows)
+    assert recs == [
+        (
+            "EMAAR",
+            {
+                "date": "2026-06-26",
+                "open": 12.84,
+                "high": 13.10,
+                "low": 12.74,
+                "close": 13.02,
+                "volume": 1500000.0,
+            },
+        )
+    ]
+
+
+def test_parse_rows_skips_untraded_zero_ohl():
+    # bulletin untraded days carry O=H=L=0 (and sometimes a carried close) — drop them
+    headers = ["Date", "Open", "High", "Low", "Close"]
+    rows = [
+        ["2026-06-19", "0", "0", "0", "12.5"],  # untraded: O=H=L=0, carried close
+        ["2026-06-20", "0", "0", "0", "0"],  # fully empty
+        ["2026-06-21", "1", "2", "0.5", "1.5"],  # ok
+    ]
+    recs = parse_rows(headers, rows, default_symbol="X")
+    assert len(recs) == 1
+    assert recs[0][1]["date"] == "2026-06-21"
+
+
 def test_build_series_sorts_and_dedupes():
     recs = [
         ("EMAAR", {"date": "2026-06-19", "open": 1, "high": 1, "low": 1, "close": 1, "volume": 0}),

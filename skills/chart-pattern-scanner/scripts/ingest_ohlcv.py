@@ -22,14 +22,23 @@ import json
 import os
 import sys
 
-# canonical field -> accepted header aliases (lowercased)
+# canonical field -> accepted header aliases (lowercased).
+# Order within a list is the preference order when a file carries two matching
+# columns (e.g. the DFM bulletin has both current_close and last_price -> close;
+# current_close, the daily settlement, is listed first so it wins).
 ALIASES = {
-    "date": ["date", "datetime", "time", "trade date", "tradedate", "day", "تاريخ", "اليوم"],
+    "date": [
+        "date", "datetime", "time", "trade date", "tradedate",
+        "report_date", "day", "تاريخ", "اليوم",
+    ],
     "open": ["open", "o", "openprice", "open price", "افتتاح"],
     "high": ["high", "h", "highprice", "high price", "اعلى", "أعلى"],
     "low": ["low", "l", "lowprice", "low price", "ادنى", "أدنى"],
-    "close": ["close", "c", "closeprice", "close price", "last", "ltp", "اغلاق", "إغلاق"],
-    "volume": ["volume", "vol", "qty", "quantity", "shares", "حجم", "الكمية"],
+    "close": [
+        "close", "current_close", "closeprice", "close price",
+        "last_price", "last", "ltp", "c", "اغلاق", "إغلاق",
+    ],
+    "volume": ["volume", "trade_volume", "vol", "qty", "quantity", "shares", "حجم", "الكمية"],
     "symbol": ["symbol", "ticker", "code", "company", "security", "name", "الرمز", "الشركة"],
 }
 
@@ -46,11 +55,22 @@ def normalize_header(name: str) -> str | None:
 
 
 def detect_columns(headers: list) -> dict:
-    """Return {canonical: index} for recognized columns."""
-    out = {}
+    """Return {canonical: index} for recognized columns.
+
+    When a file carries two columns mapping to the same canonical field, the
+    column whose header is the more-preferred alias (earlier in its ALIASES
+    list) wins — so the DFM bulletin's current_close beats last_price for
+    `close`. Ties on alias rank fall back to header position.
+    """
+    best: dict = {}  # canon -> (alias_rank, header_index)
+    out: dict = {}
     for i, h in enumerate(headers):
         canon = normalize_header(h)
-        if canon and canon not in out:
+        if not canon:
+            continue
+        rank = ALIASES[canon].index((h or "").strip().lower())
+        if canon not in best or (rank, i) < best[canon]:
+            best[canon] = (rank, i)
             out[canon] = i
     return out
 
@@ -98,7 +118,10 @@ def parse_rows(headers: list, rows: list, default_symbol: str | None = None) -> 
             }
         except (IndexError, ValueError) as e:
             raise ValueError(f"bad row {r}: {e}") from e
-        if bar["close"] > 0:
+        # Drop untraded sessions: the DFM bulletin carries O=H=L=0 (sometimes
+        # with a carried-forward close) on days a symbol didn't trade. Require a
+        # real OHLC bar.
+        if bar["open"] > 0 and bar["high"] > 0 and bar["low"] > 0 and bar["close"] > 0:
             records.append((sym, bar))
     return records
 
