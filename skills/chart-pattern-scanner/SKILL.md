@@ -235,6 +235,10 @@ python3 skills/chart-pattern-scanner/scripts/daily_dfm_signals.py \
   --series-json reports/dfm_bulletin/_all_series.json --within 1 --output-dir reports/
 ```
 
+Schedule it daily with `scripts/run_dfm_daily_signals.sh` (refreshes API history,
+prefers a volume-accurate bulletin if present) and
+`launchd/com.trade-analysis.dfm-daily-signals.plist`.
+
 ### scripts/ingest_ohlcv.py
 Ingest an arbitrary OHLCV export (iVestor / broker / Excel / CSV — single- or
 multi-symbol, flexible column names) into the `_all_series.json` format the
@@ -283,12 +287,19 @@ A backtested **pairs / relative-value (spread) strategy** for two co-moving
 symbols (built for the strongest DFM pair, **EMAAR ~ EMAARDEV**). Z-scores the
 log price ratio over a trailing window; enters when the ratio is stretched
 (|z| ≥ entry), exits on reversion or a divergence stop. Reports trades,
-win-rate, market-neutral P&L, and the current signal. Pure logic unit-tested.
+win-rate, market-neutral P&L, and the current signal. `--scan` ranks every
+correlated pair in the series for tradable spreads (with a multiple-comparison
+warning — candidates to investigate, not proven edges). Pure logic unit-tested.
 (Note the DFM retail short constraint flagged in its output.)
 
 ```bash
+# one configured pair
 python3 skills/chart-pattern-scanner/scripts/pairs_strategy.py \
   --series-json reports/dfm_bulletin/_all_series.json --a EMAAR --b EMAARDEV
+
+# scan the whole universe for candidate spreads
+python3 skills/chart-pattern-scanner/scripts/pairs_strategy.py \
+  --series-json reports/dfm_bulletin/_all_series.json --scan --min-corr 0.4
 ```
 
 ### scripts/backtest_patterns.py

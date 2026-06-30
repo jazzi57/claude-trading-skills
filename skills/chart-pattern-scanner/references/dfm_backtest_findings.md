@@ -96,6 +96,24 @@ ratio over a trailing 20-bar window; enter when |z| ≥ entry, exit on reversion
   tight ratio band makes it sensitive to a structural break (e.g. an M&A or
   capital action that re-rates one name permanently).
 
+### Universe scan (`pairs_strategy.py --scan`)
+Scanning every pair with return correlation ≥ 0.4 ranks EMAAR~EMAARDEV mid-pack;
+several other structurally-linked names backtest higher (top by total P&L):
+
+| Pair | corr | trades | win | total P&L | Link |
+|---|---|---|---|---|---|
+| ITHMR~ALFIRDOUS | 0.58 | 23 | 91% | +87% | both small-cap financials |
+| DEYAAR~EMAARDEV | 0.41 | 23 | 83% | +65% | Dubai real-estate developers |
+| EMAARDEV~DFM | 0.48 | 22 | 73% | +55% | real estate ~ exchange |
+| DIB~DFM | 0.41 | 22 | 86% | +50% | bank ~ exchange |
+| EMAAR~EMAARDEV | 0.67 | 26 | 81% | +48% | parent ~ subsidiary |
+
+⚠️ **Multiple-comparison bias:** scanning ~2,300 pairs guarantees some high
+backtest P&L by chance. These are **candidates to investigate**, not proven
+edges — only trust a pair with a genuine economic link (same group/sector/share
+class, like EMAAR~EMAARDEV) that also holds out-of-sample. The scanner prints
+this warning in its own output.
+
 ## Limitations
 - **Two regimes, still short** (25 months incl. a net down-drift) — edges may not hold in a sustained bull phase. A multi-year sample would further test robustness.
 - **Volume confirmation now tested** on the bulletin (above); the API-only feed still lacks true share volume, so refresh from the bulletin export for volume work.

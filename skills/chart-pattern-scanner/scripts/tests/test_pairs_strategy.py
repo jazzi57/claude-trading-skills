@@ -8,6 +8,7 @@ from pairs_strategy import (
     log_ratio,
     rolling_z,
     run_pairs_backtest,
+    scan_pairs,
 )
 
 
@@ -69,6 +70,56 @@ def test_run_pairs_backtest_no_signal_when_flat_ratio():
     dates = [f"d{i:03d}" for i in range(n)]
     res = run_pairs_backtest(dates, a, b, lookback=10, entry_z=1.0, exit_z=0.2, stop_z=4.0)
     assert res["n_trades"] == 0
+
+
+def _osc_series(n, dates, amp, phase=0):
+    return [
+        {"date": dates[i], "close": 10.0 + (amp if (i + phase) % 10 < 5 else -amp)}
+        for i in range(n)
+    ]
+
+
+def test_scan_pairs_ranks_correlated_mean_reverting_pair_top():
+    n = 80
+    dates = [f"d{i:03d}" for i in range(n)]
+    # A and B co-move (both oscillate in phase) -> high correlation; their ratio
+    # still wiggles enough to trade. C is a flat line -> no signal with A.
+    a = _osc_series(n, dates, amp=2.0)
+    b = _osc_series(n, dates, amp=1.0)  # same phase, smaller amplitude
+    c = [{"date": dates[i], "close": 50.0} for i in range(n)]
+    res = scan_pairs(
+        {"A": a, "B": b, "C": c},
+        min_corr=0.3, min_overlap=40, lookback=10,
+        entry_z=1.0, exit_z=0.2, stop_z=5.0, top=5, min_trades=1,
+    )
+    assert res, "expected at least one tradable pair"
+    assert {res[0]["a"], res[0]["b"]} == {"A", "B"}
+    assert res[0]["corr"] is not None
+    assert res[0]["n_trades"] >= 1
+
+
+def test_scan_pairs_filters_low_correlation():
+    n = 80
+    dates = [f"d{i:03d}" for i in range(n)]
+    a = _osc_series(n, dates, amp=2.0, phase=0)
+    b = _osc_series(n, dates, amp=2.0, phase=5)  # anti-phase -> negative corr
+    res = scan_pairs(
+        {"A": a, "B": b}, min_corr=0.8, min_overlap=40, lookback=10,
+        entry_z=1.0, exit_z=0.2, stop_z=5.0, top=5, min_trades=1,
+    )
+    assert res == []  # correlation below threshold -> excluded
+
+
+def test_scan_pairs_respects_min_overlap():
+    n = 30
+    dates = [f"d{i:03d}" for i in range(n)]
+    a = _osc_series(n, dates, amp=2.0)
+    b = _osc_series(n, dates, amp=1.0)
+    res = scan_pairs(
+        {"A": a, "B": b}, min_corr=0.0, min_overlap=100, lookback=10,
+        entry_z=1.0, exit_z=0.2, stop_z=5.0, top=5, min_trades=1,
+    )
+    assert res == []  # not enough overlapping history
 
 
 def test_current_pair_signal_reports_zscore():

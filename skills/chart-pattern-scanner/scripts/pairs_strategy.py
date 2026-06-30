@@ -28,7 +28,11 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from correlation_study import pct_returns, pearson  # noqa: E402
 
 
 def log_ratio(a_closes: list, b_closes: list) -> list:
@@ -133,6 +137,57 @@ def run_pairs_backtest(
     }
 
 
+def scan_pairs(
+    series: dict,
+    min_corr: float = 0.5,
+    min_overlap: int = 120,
+    lookback: int = 20,
+    entry_z: float = 2.0,
+    exit_z: float = 0.5,
+    stop_z: float = 4.0,
+    top: int = 20,
+    min_trades: int = 5,
+) -> list:
+    """Backtest the spread strategy on every sufficiently-correlated pair.
+
+    Pre-filters candidate pairs by return correlation (>= min_corr, a structural
+    sanity check) and overlap, backtests each, and returns the strongest by
+    total market-neutral P&L.
+
+    ⚠️ This scans many pairs, so the top of the list is subject to multiple-
+    comparison bias — treat results as *candidates to investigate*, not proven
+    edges. A pair is only credible if it also has a real economic link
+    (same group, sector, or share class) and survives out-of-sample.
+    """
+    syms = [s for s, b in series.items() if len(b) >= min_overlap]
+    results = []
+    for i in range(len(syms)):
+        for j in range(i + 1, len(syms)):
+            dates, ac, bc = align_closes(series[syms[i]], series[syms[j]])
+            if len(dates) < max(min_overlap, lookback + 5):
+                continue
+            corr = pearson(pct_returns(ac), pct_returns(bc))
+            if corr is None or corr < min_corr:
+                continue
+            bt = run_pairs_backtest(dates, ac, bc, lookback, entry_z, exit_z, stop_z)
+            if bt["n_trades"] < min_trades:
+                continue
+            results.append(
+                {
+                    "a": syms[i],
+                    "b": syms[j],
+                    "corr": round(corr, 3),
+                    "n_trades": bt["n_trades"],
+                    "win_rate": bt["win_rate"],
+                    "avg_pnl": bt["avg_pnl"],
+                    "total_pnl": bt["total_pnl"],
+                    "n_bars": len(dates),
+                }
+            )
+    results.sort(key=lambda r: (r["total_pnl"] or 0), reverse=True)
+    return results[:top]
+
+
 def current_pair_signal(
     a_closes: list, b_closes: list, lookback: int = 20, entry_z: float = 2.0
 ) -> dict:
@@ -163,6 +218,14 @@ def main(argv: list | None = None) -> int:
     p.add_argument("--entry-z", type=float, default=2.0)
     p.add_argument("--exit-z", type=float, default=0.5)
     p.add_argument("--stop-z", type=float, default=4.0)
+    p.add_argument(
+        "--scan",
+        action="store_true",
+        help="Scan every correlated pair in the series for tradable spreads (ranked)",
+    )
+    p.add_argument("--min-corr", type=float, default=0.5, help="--scan: min return correlation")
+    p.add_argument("--min-overlap", type=int, default=120, help="--scan: min overlapping bars")
+    p.add_argument("--top", type=int, default=20, help="--scan: how many pairs to show")
     args = p.parse_args(argv)
 
     try:
@@ -170,6 +233,23 @@ def main(argv: list | None = None) -> int:
     except OSError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
+
+    if args.scan:
+        ranked = scan_pairs(
+            raw, args.min_corr, args.min_overlap, args.lookback,
+            args.entry_z, args.exit_z, args.stop_z, args.top,
+        )
+        print(f"=== Pair scan: {len(raw)} symbols, corr>={args.min_corr}, top {args.top} ===")
+        print("⚠️ Multiple-comparison bias — these are candidates to investigate, not proven edges.")
+        print(f"{'pair':30s} {'corr':>6s} {'trades':>7s} {'win':>6s} {'totP&L':>8s}")
+        for r in ranked:
+            wr = f"{r['win_rate'] * 100:.0f}%" if r["win_rate"] is not None else "—"
+            print(
+                f"{r['a'] + '~' + r['b']:30s} {r['corr']:>6.2f} {r['n_trades']:>7d} "
+                f"{wr:>6s} {r['total_pnl'] * 100:>7.0f}%"
+            )
+        return 0
+
     for sym in (args.a, args.b):
         if sym not in raw:
             print(f"Error: {sym} not in {args.series_json}", file=sys.stderr)
