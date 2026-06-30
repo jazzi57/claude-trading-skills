@@ -76,6 +76,26 @@ event-bar volume ≥ 1.5× its prior 20-bar average):
   mean-reversion-against-momentum result holds regardless of volume. A
   high-volume up-candle is not a buy.
 
+## Pairs / relative-value: EMAAR ~ EMAARDEV (`pairs_strategy.py`)
+The correlation study's strongest pair (return corr **+0.67**) trades far better
+as a **spread** than either name does on candlesticks. Z-score the log price
+ratio over a trailing 20-bar window; enter when |z| ≥ entry, exit on reversion
+(|z| ≤ 0.5) or divergence stop (|z| ≥ 4). On 515 common bulletin bars:
+
+| entry_z | trades | win-rate | avg P&L/trade | total (additive, market-neutral) |
+|---|---|---|---|---|
+| 2.0 | 26 | **81%** | +1.85% | **+48%** |
+| 1.5 | 41 | 88% | +2.25% | +92% |
+
+- **This is the strongest edge in the study** — a mean-reverting, market-neutral
+  spread, consistent with the per-stock mean-reversion finding. The z-score uses
+  only a trailing window (no look-ahead).
+- **Caveats:** P&L assumes *both* legs are tradable — DFM retail shorting is
+  constrained, so a long-only account can only express this by overweighting the
+  cheaper leg and trimming the richer one. Close-to-close, no costs/slippage; the
+  tight ratio band makes it sensitive to a structural break (e.g. an M&A or
+  capital action that re-rates one name permanently).
+
 ## Limitations
 - **Two regimes, still short** (25 months incl. a net down-drift) — edges may not hold in a sustained bull phase. A multi-year sample would further test robustness.
 - **Volume confirmation now tested** on the bulletin (above); the API-only feed still lacks true share volume, so refresh from the bulletin export for volume work.

@@ -226,7 +226,10 @@ python3 skills/chart-pattern-scanner/scripts/scan_dfm_market.py \
 Ingest an arbitrary OHLCV export (iVestor / broker / Excel / CSV — single- or
 multi-symbol, flexible column names) into the `_all_series.json` format the
 backtester and scanner consume. Use it to bring in deeper history than the free
-DFM API serves.
+DFM API serves. Reads the **official DFM trading bulletin** natively
+(`report_date` / `current_close` / `last_price` / `trade_volume` columns;
+untraded `O=H=L=0` sessions are dropped), so a downloaded bulletin gives real
+OHLC **plus share volume** back to 2024.
 
 ```bash
 python3 skills/chart-pattern-scanner/scripts/ingest_ohlcv.py \
@@ -262,28 +265,32 @@ python3 skills/chart-pattern-scanner/scripts/single_stock_strategy.py \
   --symbol AIRARABIA --mode trend
 ```
 
-### scripts/backtest_patterns.py
-Backtest every candlestick pattern on a historical series to get **empirical
-hit-rates** (sample size, % resolving in the pattern's direction at 5/10-day
-horizons, average directional return) — turning heuristic probabilities into
-data-backed ones.
+### scripts/pairs_strategy.py
+A backtested **pairs / relative-value (spread) strategy** for two co-moving
+symbols (built for the strongest DFM pair, **EMAAR ~ EMAARDEV**). Z-scores the
+log price ratio over a trailing window; enters when the ratio is stretched
+(|z| ≥ entry), exits on reversion or a divergence stop. Reports trades,
+win-rate, market-neutral P&L, and the current signal. Pure logic unit-tested.
+(Note the DFM retail short constraint flagged in its output.)
 
 ```bash
-python3 skills/chart-pattern-scanner/scripts/backtest_patterns.py \
-  --series-json reports/dfm_history/_all_series.json --output-dir reports/
+python3 skills/chart-pattern-scanner/scripts/pairs_strategy.py \
+  --series-json reports/dfm_bulletin/_all_series.json --a EMAAR --b EMAARDEV
 ```
 
 ### scripts/backtest_patterns.py
 Backtests the detector's candlestick patterns on historical OHLCV to produce
 **empirical hit-rates** (sample size, % resolving in the pattern's direction at
 each forward horizon, average directional return) — replacing heuristic
-probabilities with evidence from the market's own history. Pure stats logic is
-unit-tested offline.
+probabilities with evidence from the market's own history. With
+`--volume-confirmation` it also splits each pattern by event-bar volume
+(high ≥ 1.5× the prior 20-bar average vs normal) to test whether volume sharpens
+the edge. Pure stats logic is unit-tested offline.
 
 ```bash
 python3 skills/chart-pattern-scanner/scripts/backtest_patterns.py \
-  --series-json reports/dfm_history/_all_series.json --horizons 5,10 \
-  --output-dir reports/
+  --series-json reports/dfm_bulletin/_all_series.json --horizons 5,10 \
+  --volume-confirmation --output-dir reports/
 ```
 
 ### assets/scan_report_template.md
