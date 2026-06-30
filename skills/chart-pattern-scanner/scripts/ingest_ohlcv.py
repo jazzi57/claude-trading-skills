@@ -35,8 +35,8 @@ ALIASES = {
     "high": ["high", "h", "highprice", "high price", "اعلى", "أعلى"],
     "low": ["low", "l", "lowprice", "low price", "ادنى", "أدنى"],
     "close": [
-        "close", "current_close", "closeprice", "close price",
-        "last_price", "last", "ltp", "c", "اغلاق", "إغلاق",
+        "close", "current_close", "c", "closeprice", "close price",
+        "last_price", "last", "ltp", "اغلاق", "إغلاق",
     ],
     "volume": ["volume", "trade_volume", "vol", "qty", "quantity", "shares", "حجم", "الكمية"],
     "symbol": ["symbol", "ticker", "code", "company", "security", "name", "الرمز", "الشركة"],
@@ -100,7 +100,13 @@ def parse_rows(headers: list, rows: list, default_symbol: str | None = None) -> 
 
     records = []
     for r in rows:
-        if not r or all((c or "").strip() == "" for c in r):
+        if not r:
+            continue
+        # Coerce cells to strings up front (None -> "") so a caller passing
+        # pre-typed rows (numbers, None) is handled like the CSV/XLSX readers,
+        # which already stringify — every .strip()/float() below stays safe.
+        r = ["" if c is None else str(c) for c in r]
+        if all(c.strip() == "" for c in r):
             continue
         try:
             sym = (r[cols["symbol"]].strip() if has_sym else (default_symbol or "")).upper()

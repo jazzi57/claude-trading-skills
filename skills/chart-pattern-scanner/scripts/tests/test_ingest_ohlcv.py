@@ -101,12 +101,31 @@ def test_normalize_header_bulletin_aliases():
 
 def test_detect_columns_prefers_earlier_alias_for_duplicates():
     # bulletin carries both current_close and last_price (both -> close);
-    # the first header wins so the daily settlement price is used.
+    # the more-preferred alias (current_close, the daily settlement) wins.
     headers = ["report_date", "open", "high", "low", "current_close", "last_price", "trade_volume"]
     cols = detect_columns(headers)
     assert cols["close"] == 4  # current_close, not last_price
     assert cols["date"] == 0
     assert cols["volume"] == 6
+
+
+def test_detect_columns_alias_rank_beats_physical_position():
+    # Even when last_price physically precedes current_close, the preferred
+    # alias (current_close) still wins — selection is by alias rank, not order.
+    headers = ["date", "open", "high", "low", "last_price", "current_close", "volume"]
+    assert detect_columns(headers)["close"] == 5  # current_close at index 5
+    # bare 'c' is a real close alias and must beat a last-traded-price column
+    headers2 = ["date", "o", "h", "l", "c", "ltp", "volume"]
+    assert detect_columns(headers2)["close"] == 4  # 'c', not 'ltp'
+
+
+def test_parse_rows_coerces_nonstring_cells():
+    # pre-typed rows (numeric/None) must parse like stringified reader output
+    headers = ["Symbol", "Date", "Open", "High", "Low", "Close", "Volume"]
+    rows = [["EMAAR", "2026-06-19", 13.04, 13.06, 12.78, 12.96, 4484]]
+    recs = parse_rows(headers, rows)
+    assert recs[0][1]["volume"] == 4484.0
+    assert recs[0][1]["close"] == 12.96
 
 
 def test_parse_rows_bulletin_shape():

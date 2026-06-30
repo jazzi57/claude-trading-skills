@@ -227,7 +227,11 @@ def render_report(results: dict, horizons, meta: str) -> str:
         rows = [(n, v) for n, v in results.items() if v["direction"] == direction]
         # sort by hit rate at first horizon (desc), Nones last
         h0 = horizons[0]
-        rows.sort(key=lambda kv: kv[1]["horizons"][h0]["hit_rate"] or -1, reverse=True)
+        rows.sort(
+            key=lambda kv: (kv[1]["horizons"][h0]["hit_rate"] if kv[1]["horizons"][h0]["hit_rate"]
+                            is not None else -1),
+            reverse=True,
+        )
         for name, v in rows:
             cells = []
             for h in horizons:
@@ -263,7 +267,11 @@ def render_volume_report(results: dict, horizons, meta: str, lookback: int, mult
         out.append("|---|---" + "|---" * (3 * len(horizons)) + "|")
         rows = [(n, v) for n, v in results.items() if v["direction"] == direction]
         h0 = horizons[0]
-        rows.sort(key=lambda kv: kv[1]["buckets"]["all"][h0]["hit_rate"] or -1, reverse=True)
+        rows.sort(
+            key=lambda kv: (kv[1]["buckets"]["all"][h0]["hit_rate"]
+                            if kv[1]["buckets"]["all"][h0]["hit_rate"] is not None else -1),
+            reverse=True,
+        )
         for name, v in rows:
             for bucket in ("high", "normal", "all"):
                 cells = []

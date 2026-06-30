@@ -25,6 +25,7 @@ are unit-tested offline.
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import json
 import os
 import sys
@@ -100,10 +101,17 @@ def scan_volume_reversals(
     mult: float = 1.5,
     within: int = 1,
 ) -> list:
-    """Run recent_volume_reversals across every symbol; flatten to rows."""
+    """Run recent_volume_reversals across every symbol; flatten to rows.
+
+    A malformed symbol (bar dict missing an OHLC key) is skipped, not allowed to
+    abort the whole multi-symbol scan.
+    """
     rows = []
     for sym, bars in series.items():
-        candles = bars if bars and isinstance(bars[0], Candle) else _to_candles(bars)
+        try:
+            candles = bars if bars and isinstance(bars[0], Candle) else _to_candles(bars)
+        except (KeyError, TypeError, ValueError):
+            continue
         if len(candles) < lookback + 3:
             continue
         for hit in recent_volume_reversals(candles, patterns, lookback, mult, within):
@@ -179,29 +187,38 @@ def main(argv: list | None = None) -> int:
         "--pair", action="append", default=[],
         help="Extra pair as A:B (repeatable); defaults to EMAAR:EMAARDEV",
     )
+    p.add_argument(
+        "--as-of", default=None,
+        help="Date stamp for the output filename (YYYY-MM-DD); defaults to today",
+    )
     args = p.parse_args(argv)
 
     try:
-        raw = json.load(open(args.series_json, encoding="utf-8"))
-    except OSError as e:
+        with open(args.series_json, encoding="utf-8") as fh:
+            raw = json.load(fh)
+    except (OSError, ValueError) as e:  # ValueError covers malformed/truncated JSON
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
+    as_of = args.as_of or dt.date.today().isoformat()
     pairs = DEFAULT_PAIRS + [tuple(x.split(":", 1)) for x in args.pair if ":" in x]
     pairs_out = pair_signals(raw, pairs, args.lookback, args.entry_z)
     scan_rows = scan_volume_reversals(
         raw, RELIABLE_VOLUME_PATTERNS, args.lookback, args.mult, args.within
     )
 
-    meta = f"**Universe:** {len(raw)} symbols · lookback {args.lookback} · high≥{args.mult:g}×avg"
+    meta = (
+        f"**As of:** {as_of} · **Universe:** {len(raw)} symbols · "
+        f"lookback {args.lookback} · high≥{args.mult:g}×avg"
+    )
     os.makedirs(args.output_dir, exist_ok=True)
     md = render_report(pairs_out, scan_rows, meta, args.within)
-    md_path = os.path.join(args.output_dir, "DFM_daily_signals.md")
+    md_path = os.path.join(args.output_dir, f"DFM_daily_signals_{as_of}.md")
     with open(md_path, "w", encoding="utf-8") as fh:
         fh.write(md)
-    json_path = os.path.join(args.output_dir, "DFM_daily_signals.json")
+    json_path = os.path.join(args.output_dir, f"DFM_daily_signals_{as_of}.json")
     with open(json_path, "w", encoding="utf-8") as fh:
-        json.dump({"pairs": pairs_out, "reversals": scan_rows}, fh, indent=2)
+        json.dump({"as_of": as_of, "pairs": pairs_out, "reversals": scan_rows}, fh, indent=2)
 
     print(f"=== DFM daily signals ({len(raw)} symbols) ===")
     for p_ in pairs_out:

@@ -11,6 +11,17 @@ from daily_limit import (
 )
 
 
+def test_sessions_to_reach_guards_zero_and_full_caps():
+    # a 0% cap in the needed direction -> unreachable, clean ValueError (not ZeroDivisionError)
+    with pytest.raises(ValueError, match="unreachable"):
+        sessions_to_reach(100.0, 200.0, up_pct=0.0, down_pct=0.05)
+    with pytest.raises(ValueError, match="unreachable"):
+        sessions_to_reach(100.0, 50.0, up_pct=0.15, down_pct=0.0)
+    # down_pct >= 1 implies a non-positive price -> ValueError (not math domain error)
+    with pytest.raises(ValueError, match="down_pct"):
+        sessions_to_reach(100.0, 50.0, up_pct=0.15, down_pct=1.0)
+
+
 def test_defaults_are_asymmetric():
     assert DFM_UP == 0.15
     assert DFM_DOWN == 0.05

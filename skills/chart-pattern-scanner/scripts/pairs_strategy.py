@@ -160,12 +160,21 @@ def scan_pairs(
     (same group, sector, or share class) and survives out-of-sample.
     """
     syms = [s for s, b in series.items() if len(b) >= min_overlap]
+    # Precompute each symbol's {date: close} ONCE (positive closes only) instead
+    # of rebuilding both maps inside align_closes for every one of the O(n^2)
+    # pairs — the per-pair work becomes a set-intersection over hashed keys.
+    cmaps = {s: {b["date"]: b["close"] for b in series[s] if b["close"] > 0} for s in syms}
+    min_bars = max(min_overlap, lookback + 5)
     results = []
     for i in range(len(syms)):
+        amap = cmaps[syms[i]]
         for j in range(i + 1, len(syms)):
-            dates, ac, bc = align_closes(series[syms[i]], series[syms[j]])
-            if len(dates) < max(min_overlap, lookback + 5):
+            bmap = cmaps[syms[j]]
+            dates = sorted(set(amap) & set(bmap))
+            if len(dates) < min_bars:
                 continue
+            ac = [amap[d] for d in dates]
+            bc = [bmap[d] for d in dates]
             corr = pearson(pct_returns(ac), pct_returns(bc))
             if corr is None or corr < min_corr:
                 continue
@@ -229,8 +238,9 @@ def main(argv: list | None = None) -> int:
     args = p.parse_args(argv)
 
     try:
-        raw = json.load(open(args.series_json, encoding="utf-8"))
-    except OSError as e:
+        with open(args.series_json, encoding="utf-8") as fh:
+            raw = json.load(fh)
+    except (OSError, ValueError) as e:  # ValueError covers malformed/truncated JSON
         print(f"Error: {e}", file=sys.stderr)
         return 1
 

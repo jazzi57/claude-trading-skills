@@ -23,10 +23,19 @@ DFM_UP = 0.15
 DFM_DOWN = 0.05
 
 
+def _validate_pcts(up_pct: float, down_pct: float) -> None:
+    """Caps must be non-negative and the down cap < 100% (else price <= 0)."""
+    if up_pct < 0 or down_pct < 0:
+        raise ValueError("up_pct and down_pct must be non-negative")
+    if down_pct >= 1:
+        raise ValueError("down_pct must be < 1 (a >=100% drop implies a non-positive price)")
+
+
 def daily_band(reference: float, up_pct: float = DFM_UP, down_pct: float = DFM_DOWN) -> tuple:
     """Return (lower, upper) price bounds reachable in one session."""
     if reference <= 0:
         raise ValueError("reference price must be positive")
+    _validate_pcts(up_pct, down_pct)
     return (round(reference * (1 - down_pct), 4), round(reference * (1 + up_pct), 4))
 
 
@@ -50,6 +59,11 @@ def sessions_to_reach(
         raise ValueError("prices must be positive")
     if reachable_in_one_day(reference, target, up_pct, down_pct):
         return 1
+    # The relevant cap must be > 0, else the price can never move that way.
+    cap = up_pct if target > reference else down_pct
+    if cap <= 0:
+        direction = "up" if target > reference else "down"
+        raise ValueError(f"target is unreachable: the {direction} cap is 0%")
     ratio = target / reference
     step = math.log(1 + up_pct) if target > reference else math.log(1 - down_pct)
     return max(1, math.ceil(math.log(ratio) / step))
