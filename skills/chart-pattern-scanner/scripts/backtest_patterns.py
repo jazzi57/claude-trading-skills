@@ -102,6 +102,84 @@ def summarize_pattern(series: dict, pattern_name: str, direction: str, horizons=
     return {h: aggregate_stats(by_h[h], direction) for h in horizons}
 
 
+def avg_prior_volume(candles: list, idx: int, lookback: int) -> float | None:
+    """Mean volume over the `lookback` bars strictly before `idx`.
+
+    None if there aren't `lookback` prior bars or the average is non-positive
+    (so symbols/dates with missing volume don't get a spurious bucket).
+    """
+    if idx < lookback:
+        return None
+    window = candles[idx - lookback : idx]
+    if len(window) < lookback:
+        return None
+    total = sum(c.volume for c in window)
+    avg = total / lookback
+    return avg if avg > 0 else None
+
+
+def volume_bucket(candles: list, idx: int, lookback: int, mult: float) -> str | None:
+    """Classify the event bar's volume vs its prior average.
+
+    "high" if volume[idx] >= mult * avg_prior_volume, else "normal".
+    None when there's no usable prior-volume baseline.
+    """
+    base = avg_prior_volume(candles, idx, lookback)
+    if base is None:
+        return None
+    return "high" if candles[idx].volume >= mult * base else "normal"
+
+
+def summarize_pattern_volume(
+    series: dict,
+    pattern_name: str,
+    direction: str,
+    horizons=(5, 10),
+    lookback: int = 20,
+    mult: float = 1.5,
+) -> dict:
+    """Like summarize_pattern but split by event-bar volume bucket.
+
+    Returns {"high"|"normal"|"all": {horizon: stats}} so high-volume vs
+    normal-volume occurrences can be compared (does volume sharpen the edge?).
+    """
+    buckets = {b: {h: [] for h in horizons} for b in ("high", "normal", "all")}
+    for _sym, candles in series.items():
+        if len(candles) < max(horizons) + 2:
+            continue
+        hits = [h for h in detect_patterns(candles) if h.name == pattern_name]
+        for hit in hits:
+            bucket = volume_bucket(candles, hit.index, lookback, mult)
+            for h in horizons:
+                out = forward_outcomes(candles, hit.index, h)
+                if out is None:
+                    continue
+                buckets["all"][h].append(out)
+                if bucket is not None:
+                    buckets[bucket][h].append(out)
+    return {b: {h: aggregate_stats(buckets[b][h], direction) for h in horizons} for b in buckets}
+
+
+def backtest_volume_confirmation(
+    series: dict, horizons=(5, 10), lookback: int = 20, mult: float = 1.5
+) -> dict:
+    """Volume-split backtest for every directional pattern.
+
+    {pattern: {"direction", "lookback", "mult", "buckets": {bucket: {h: stats}}}}.
+    """
+    results = {}
+    for name, direction in PATTERN_DIRECTION.items():
+        results[name] = {
+            "direction": direction,
+            "lookback": lookback,
+            "mult": mult,
+            "buckets": summarize_pattern_volume(
+                series, name, direction, horizons, lookback, mult
+            ),
+        }
+    return results
+
+
 def backtest_all(series: dict, horizons=(5, 10)) -> dict:
     """Backtest every known directional pattern. Returns {pattern: {horizon: stats}}."""
     results = {}
@@ -167,11 +245,58 @@ def render_report(results: dict, horizons, meta: str) -> str:
     return "\n".join(out)
 
 
+def render_volume_report(results: dict, horizons, meta: str, lookback: int, mult: float) -> str:
+    out = ["# Candlestick Pattern Backtest — Volume Confirmation\n", f"{meta}\n"]
+    out.append(
+        f"Each occurrence is split by the event bar's volume vs its prior "
+        f"{lookback}-bar average: **high** = volume ≥ {mult:g}× average, else **normal**. "
+        "If a pattern's edge is real, the high-volume bucket should show a higher hit-rate "
+        "than normal-volume.\n"
+    )
+    for direction in ("bullish", "bearish"):
+        out.append(f"## {direction.title()} patterns\n")
+        out.append(
+            "| Pattern | bucket | "
+            + " | ".join(f"n@{h}d | hit@{h}d | avgDirRet@{h}d" for h in horizons)
+            + " |"
+        )
+        out.append("|---|---" + "|---" * (3 * len(horizons)) + "|")
+        rows = [(n, v) for n, v in results.items() if v["direction"] == direction]
+        h0 = horizons[0]
+        rows.sort(key=lambda kv: kv[1]["buckets"]["all"][h0]["hit_rate"] or -1, reverse=True)
+        for name, v in rows:
+            for bucket in ("high", "normal", "all"):
+                cells = []
+                for h in horizons:
+                    s = v["buckets"][bucket][h]
+                    if s["n"]:
+                        cells += [
+                            str(s["n"]),
+                            f"{s['hit_rate'] * 100:.0f}%",
+                            f"{s['avg_return_dir'] * 100:+.1f}%",
+                        ]
+                    else:
+                        cells += ["0", "—", "—"]
+                label = name if bucket == "high" else ""
+                out.append(f"| {label} | {bucket} | " + " | ".join(cells) + " |")
+        out.append("")
+    return "\n".join(out)
+
+
 def main(argv: list | None = None) -> int:
     p = argparse.ArgumentParser(description="Backtest candlestick patterns on a series JSON.")
     p.add_argument("--series-json", required=True, help="Path to series JSON (symbol -> bars)")
     p.add_argument("--horizons", default="5,10", help="Comma-separated forward horizons in days")
     p.add_argument("--output-dir", default="reports", help="Where to write the report/JSON")
+    p.add_argument(
+        "--volume-confirmation",
+        action="store_true",
+        help="Also split each pattern by high vs normal event-bar volume",
+    )
+    p.add_argument("--vol-lookback", type=int, default=20, help="Prior-volume average window")
+    p.add_argument(
+        "--vol-mult", type=float, default=1.5, help="High-volume multiple of the prior average"
+    )
     args = p.parse_args(argv)
 
     horizons = tuple(int(x) for x in args.horizons.split(","))
@@ -193,6 +318,18 @@ def main(argv: list | None = None) -> int:
     with open(json_path, "w", encoding="utf-8") as fh:
         json.dump(results, fh, indent=2)
     print(f"Wrote {md_path} and {json_path}")
+
+    if args.volume_confirmation:
+        vol = backtest_volume_confirmation(series, horizons, args.vol_lookback, args.vol_mult)
+        vmeta = meta + f" · vol-lookback {args.vol_lookback} · high≥{args.vol_mult:g}×avg"
+        vmd = render_volume_report(vol, horizons, vmeta, args.vol_lookback, args.vol_mult)
+        vmd_path = os.path.join(args.output_dir, "DFM_pattern_backtest_volume.md")
+        with open(vmd_path, "w", encoding="utf-8") as fh:
+            fh.write(vmd)
+        vjson_path = os.path.join(args.output_dir, "DFM_pattern_backtest_volume.json")
+        with open(vjson_path, "w", encoding="utf-8") as fh:
+            json.dump(vol, fh, indent=2)
+        print(f"Wrote {vmd_path} and {vjson_path}")
     return 0
 
 

@@ -45,9 +45,40 @@ On the first day after the study window, the two edges pointed the right way:
 `hanging_man` shorts fell 3 of 4; the "fade the bearish pattern" names rose 5 of 9
 (led by Emirates NBD +1.9%). One day is not significant — directional confirmation only.
 
+## Out-of-sample replication & volume confirmation (DFM bulletin, 2026-06-26)
+The official DFM **trading bulletin** export (real OHLC **+ share volume + sector**)
+extends coverage to **69 symbols, 26,197 traded bars, 2024-05-27 → 2026-06-26**
+(~25 months) — a deeper, partly out-of-sample sample with true volume. Loaded
+natively via `ingest_ohlcv.py` (`report_date`/`current_close`/`trade_volume`
+aliases; untraded O=H=L=0 sessions dropped). All prior findings replicate:
+`hanging_man` hits **61%** (5d), per-stock lag-1 autocorrelation **−0.10**
+(mean reversion), `EMAAR`~`EMAARDEV` return correlation **+0.67**.
+
+**Volume confirmation** (`backtest_patterns.py --volume-confirmation`; high =
+event-bar volume ≥ 1.5× its prior 20-bar average):
+
+| Pattern | Dir | bucket | n@10d | hit@10d | Read |
+|---|---|---|---|---|---|
+| hanging_man | bearish | high vol | 108 | **64%** | volume sharpens |
+| hanging_man | bearish | normal | 538 | 56% | |
+| shooting_star | bearish | high vol | 130 | **55%** | volume rescues it |
+| shooting_star | bearish | normal | 245 | 40% | |
+| bullish_engulfing | bullish | high vol | 241 | 37% | volume **hurts** |
+| bullish_engulfing | bullish | normal | 658 | 45% | |
+
+- **Volume confirms the bearish-reversal edge.** On above-average volume,
+  `hanging_man` (64% vs 56%) and `shooting_star` (55% vs 40%) hit materially
+  better — a high-volume bearish reversal is the strongest single candlestick
+  signal on DFM. `shooting_star`, contrarian on raw counts, is only useful
+  *with* volume.
+- **Volume does not help the bullish/momentum patterns.** High-volume
+  `bullish_engulfing`/`bullish_marubozu` hit *no better* (often worse) — the
+  mean-reversion-against-momentum result holds regardless of volume. A
+  high-volume up-candle is not a buy.
+
 ## Limitations
-- **Single regime** (18 months, net down-drift) — edges may not hold in a bull phase. A multi-year sample (paid vendor or broker export, via `ingest_ohlcv.py`) would test robustness.
-- **Volume** is a trade-count proxy (the DFM widget API omits share volume), so volume-confirmation could not be tested.
+- **Two regimes, still short** (25 months incl. a net down-drift) — edges may not hold in a sustained bull phase. A multi-year sample would further test robustness.
+- **Volume confirmation now tested** on the bulletin (above); the API-only feed still lacks true share volume, so refresh from the bulletin export for volume work.
 - Outcomes are **close-to-close**, ignoring intraday paths, slippage, and trading costs.
 
 *Informational/educational only — not financial advice. Past behaviour does not guarantee future results.*

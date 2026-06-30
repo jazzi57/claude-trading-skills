@@ -2,8 +2,11 @@
 
 from backtest_patterns import (
     aggregate_stats,
+    avg_prior_volume,
     forward_outcomes,
     summarize_pattern,
+    summarize_pattern_volume,
+    volume_bucket,
 )
 from detect_candlestick_patterns import Candle
 
@@ -72,3 +75,44 @@ def test_summarize_pattern_runs_over_series():
     )
     assert 5 in res
     assert "n" in res[5]
+
+
+# --- volume confirmation ---------------------------------------------------- #
+
+
+def test_avg_prior_volume_window():
+    candles = [Candle(f"d{i}", 1, 1, 1, 1, vol) for i, vol in enumerate([10, 20, 30, 40, 50])]
+    # average of the 3 bars strictly before idx 4 -> (20+30+40)/3 = 30
+    assert avg_prior_volume(candles, 4, lookback=3) == 30.0
+
+
+def test_avg_prior_volume_insufficient_history():
+    candles = [Candle(f"d{i}", 1, 1, 1, 1, 10) for i in range(3)]
+    assert avg_prior_volume(candles, 2, lookback=5) is None
+    assert avg_prior_volume(candles, 0, lookback=3) is None
+
+
+def test_volume_bucket_high_vs_normal():
+    vols = [100] * 20 + [250]  # last bar is 2.5x the prior average
+    candles = [Candle(f"d{i}", 1, 1, 1, 1, v) for i, v in enumerate(vols)]
+    assert volume_bucket(candles, 20, lookback=20, mult=1.5) == "high"
+    # a bar equal to the average is "normal"
+    candles2 = [Candle(f"d{i}", 1, 1, 1, 1, 100) for i in range(21)]
+    assert volume_bucket(candles2, 20, lookback=20, mult=1.5) == "normal"
+
+
+def test_volume_bucket_none_when_no_history():
+    candles = [Candle(f"d{i}", 1, 1, 1, 1, 100) for i in range(3)]
+    assert volume_bucket(candles, 2, lookback=20, mult=1.5) is None
+
+
+def test_summarize_pattern_volume_splits_buckets():
+    candles = _series_up_after(5)
+    res = summarize_pattern_volume(
+        {"TEST": candles}, pattern_name="hammer", direction="bullish",
+        horizons=(5,), lookback=3, mult=1.5,
+    )
+    assert set(res) == {"high", "normal", "all"}
+    for bucket in res.values():
+        assert 5 in bucket
+        assert "n" in bucket[5]
