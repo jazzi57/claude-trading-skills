@@ -187,5 +187,6 @@ disclaimer.
 - `skills/chart-pattern-scanner/scripts/fetch_dfm_official.py`
 - `skills/chart-pattern-scanner/scripts/generate_candle_chart.py`
 - `skills/chart-pattern-scanner/scripts/ingest_ohlcv.py`
+- `skills/chart-pattern-scanner/scripts/pairs_strategy.py`
 - `skills/chart-pattern-scanner/scripts/scan_dfm_market.py`
 - `skills/chart-pattern-scanner/scripts/single_stock_strategy.py`
