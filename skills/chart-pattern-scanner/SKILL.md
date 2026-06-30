@@ -240,6 +240,17 @@ target is fillable today, and the **minimum sessions** a stop/target needs under
 the compounding cap (so 2R targets aren't mislabelled as one-day moves). Pure +
 unit-tested.
 
+### scripts/correlation_study.py
+Non-candlestick structural study of a multi-symbol series: per-stock lag-1
+return autocorrelation (mean-reversion vs momentum), beta to an equal-weight
+market factor, market→stock lead-lag, and the most-correlated pairs
+(pair-trade candidates). Pure logic unit-tested.
+
+```bash
+python3 skills/chart-pattern-scanner/scripts/correlation_study.py \
+  --series-json reports/dfm_history/_all_series.json
+```
+
 ### scripts/single_stock_strategy.py
 A dedicated, backtested **single-stock trading mechanism** (built for Air Arabia).
 Two long-only modes — `trend` (SMA trend-follow, suits trending names) and

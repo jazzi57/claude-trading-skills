@@ -181,6 +181,7 @@ disclaimer.
 **Scripts:**
 
 - `skills/chart-pattern-scanner/scripts/backtest_patterns.py`
+- `skills/chart-pattern-scanner/scripts/correlation_study.py`
 - `skills/chart-pattern-scanner/scripts/daily_limit.py`
 - `skills/chart-pattern-scanner/scripts/detect_candlestick_patterns.py`
 - `skills/chart-pattern-scanner/scripts/fetch_dfm_official.py`
