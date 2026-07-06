@@ -2,3 +2,5 @@
 data/*.csv
 # Trade reports written at runtime (relative to the working directory).
 temp_reports/
+# Regime/time-specific tuning output — regenerate with retune_atr.py.
+tuned_params.json

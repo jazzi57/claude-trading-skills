@@ -32,6 +32,9 @@ vendored here (it is ~20 MB; this repo caps committed files at 500 KB).
 |------|---------|
 | `sunrise_ogle_xauusd.py` | The strategy + Backtrader run harness (CLI). |
 | `fetch_data.py` | Downloads **real** gold 5-min OHLCV (Yahoo, keyless; or FMP). |
+| `report_state.py` | Reports the model's **current** state + levels on the latest bar. |
+| `retune_atr.py` | Recalibrates ATR/angle params to the current regime (in/out-of-sample). |
+| `_engine.py` | Shared Backtrader harness used by the two scripts above. |
 | `generate_sample_data.py` | Creates a small **synthetic** 5-min OHLCV CSV so the backtest runs with no network. |
 | `requirements.txt` | Pinned dependencies from upstream (`backtrader==1.9.76.123`, NumPy, Matplotlib…). |
 | `data/` | Fetched / generated CSVs land here (git-ignored). |
@@ -80,6 +83,48 @@ python fetch_data.py --source fmp --symbol XAUUSD   # FMP (needs FMP_API_KEY)
 > the `*_ATR_*` constants at the top of `sunrise_ogle_xauusd.py` to the current
 > price regime, or pass `--no-atr-filter` to bypass them and sanity-check the
 > entry logic on freshly fetched data.
+
+## Calibrating to the current regime + reading the live state
+
+Two helpers make the model usable on current data instead of just backtestable.
+
+**1. Retune parameters to today's regime (`retune_atr.py`).** Derives the ATR
+filter band from the data's own ATR distribution, disables the finicky ATR
+increment/decrement sub-filters, drops the forex-scale SHORT angle gate, sweeps
+a small stop/target grid on an **in-sample** window, and validates the pick
+**out-of-sample**. Writes `tuned_params.json`.
+
+```bash
+python retune_atr.py --fetch --range 60d
+```
+
+Example run: it calibrated the ATR band to `[2.75, 11.33]` (vs the broken `2.00`
+default), found an in-sample optimum (PF ≈ 2.0), but **out-of-sample it flattened
+to ≈0 % / PF ≈ 1.0** — so it explicitly warns the params are a *regime fix that
+lets the model trade, not a validated edge.* Intraday history is short (~60 days
+via Yahoo), so treat all of this as high-variance calibration, **not** proof of
+profitability.
+
+**2. Read the current state (`report_state.py`).** Runs the state machine over
+the latest bars and reports whether it is SCANNING / ARMED / WINDOW_OPEN (or in a
+position), plus the concrete breakout / stop / target levels.
+
+```bash
+python report_state.py --fetch                              # default filters
+python report_state.py --fetch --params-file tuned_params.json   # with tuned params
+python report_state.py --fetch --json                       # machine-readable
+```
+
+**Apply tuned params to any run** with `--params-file`:
+
+```bash
+python sunrise_ogle_xauusd.py --fetch --params-file tuned_params.json --quiet
+```
+
+> These are decision-support readouts of a mechanical model on recent data.
+> They are **not financial advice** and **not a vetted live signal**. The
+> out-of-sample numbers are the ones that matter, and on this short sample there
+> is no demonstrated edge.
 
 ## Bring your own CSV
 

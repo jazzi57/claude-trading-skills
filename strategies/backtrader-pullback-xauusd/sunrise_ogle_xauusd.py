@@ -2930,6 +2930,9 @@ if __name__ == '__main__':
                      help='Yahoo lookback window for --fetch (max ~60d for 5m bars)')
     _ap.add_argument('--fmp-api-key', default=os.environ.get('FMP_API_KEY'),
                      help='FMP API key for --fetch --source fmp (or set FMP_API_KEY)')
+    _ap.add_argument('--params-file', default=None,
+                     help='JSON of strategy params to apply (e.g. tuned_params.json '
+                          'from retune_atr.py). Merged over the file defaults.')
     _args = _ap.parse_args()
 
     # Apply overrides onto the module-level constants the run harness reads.
@@ -3011,6 +3014,10 @@ if __name__ == '__main__':
             long_use_atr_decrement_filter=False, short_use_atr_filter=False,
             short_use_atr_increment_filter=False, short_use_atr_decrement_filter=False,
         )
+    # Apply tuned parameters from retune_atr.py (merged last, so they win).
+    if _args.params_file:
+        import json as _json
+        STRAT_KWARGS.update(_json.load(open(_args.params_file)))
     
     if TEST_FOREX_MODE:
         # Quick test with forex calculations - reduce time period
