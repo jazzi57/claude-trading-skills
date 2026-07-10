@@ -137,6 +137,30 @@ skills:
   - quality_report
   - issue_list
   workflows: []
+- id: discord-whatsapp-bridge
+  display_name: Discord-WhatsApp Bridge
+  category: meta
+  status: production
+  summary: Set up and operate a Discord-to-WhatsApp bridge that forwards trading alerts from Discord
+    channels to a WhatsApp number.
+  timeframe: event-driven
+  difficulty: intermediate
+  integrations:
+  - id: discord
+    type: web
+    requirement: required
+    note: Discord bot token (Message Content intent); free
+  - id: whatsapp
+    type: web
+    requirement: required
+    note: WhatsApp account linked via QR (whatsapp-web.js, unofficial); free
+  inputs:
+  - bridge_config_json
+  - discord_channel_messages
+  outputs:
+  - whatsapp_forwarded_alerts
+  - config_validation_report
+  workflows: []
 - id: dividend-growth-pullback-screener
   display_name: Dividend Growth Pullback Screener
   category: core-portfolio

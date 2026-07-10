@@ -1,0 +1,7 @@
+# Bridge runtime artifacts — never commit these
+node_modules/
+.env
+.wwebjs_auth/
+.wwebjs_cache/
+package-lock.json
+yarn.lock

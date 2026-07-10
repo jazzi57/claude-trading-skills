@@ -1,0 +1,23 @@
+{
+  "channels": [
+    {
+      "label": "VCP Breakout Alerts",
+      "guild_id": "132182129704239114",
+      "channel_id": "132182129704239145",
+      "keywords": ["breakout", "entry", "stop"],
+      "enabled": true
+    },
+    {
+      "label": "Earnings Signals",
+      "guild_id": "132182129704239114",
+      "channel_id": "132182203270221419",
+      "keywords": [],
+      "enabled": true
+    }
+  ],
+  "forwarding": {
+    "include_author": true,
+    "include_attachments": true,
+    "rate_limit_per_minute": 20
+  }
+}

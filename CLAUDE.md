@@ -225,6 +225,7 @@ The table below is **auto-generated** from `skills-index.yaml` by `scripts/gener
 | **CANSLIM Screener** | ✅ Required | ❌ Not used | ❌ Not used | US stock fundamentals via FMP |
 | **Chart Pattern Scanner** | ❌ Not used | ❌ Not used | ❌ Not used | Candlestick chart screenshot input (vision-based scan); OHLCV CSV for the deterministic detector; works offline; Optional ticker fetch for chart generation; no API key |
 | **Data Quality Checker** | ❌ Not used | ❌ Not used | ❌ Not used | Local markdown validation; works offline |
+| **Discord-WhatsApp Bridge** | ❌ Not used | ❌ Not used | ❌ Not used | Discord bot token (Message Content intent); free; WhatsApp account linked via QR (whatsapp-web.js, unofficial); free |
 | **Dividend Growth Pullback Screener** | ✅ Required | 🟡 Optional (Recommended) | ❌ Not used | Financial Modeling Prep API |
 | **Downtrend Duration Analyzer** | ❌ Not used | ❌ Not used | ❌ Not used | Duration analysis from market data; pure calculation |
 | **Dual Axis Skill Reviewer** | ❌ Not used | ❌ Not used | ❌ Not used | Deterministic scoring + optional LLM review |
@@ -521,6 +522,19 @@ python3 skills/data-quality-checker/scripts/check_data_quality.py \
 # With reference date for year inference
 python3 skills/data-quality-checker/scripts/check_data_quality.py \
   --file report.md --as-of 2026-02-28 --output-dir reports/
+```
+
+**Discord-WhatsApp Bridge:** No API key required (Discord bot token + WhatsApp account)
+```bash
+# Validate the channel-mapping config and environment before starting
+python3 skills/discord-whatsapp-bridge/scripts/validate_bridge_config.py \
+  --config skills/discord-whatsapp-bridge/assets/bridge_config.example.json \
+  --check-env --output-dir reports/
+
+# Install and start the Node.js bridge (first run shows a WhatsApp QR code)
+cd skills/discord-whatsapp-bridge/scripts/bridge
+npm install
+npm start
 ```
 
 **Edge Strategy Reviewer:** No API key required
