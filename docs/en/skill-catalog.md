@@ -135,6 +135,7 @@ A comprehensive catalog of all 55 Claude Trading Skills organized by category. B
 | Skill | Description | API Requirements |
 |-------|-------------|-----------------|
 | **Data Quality Checker** | Validates market analysis documents for price scale inconsistencies, date/weekday mismatches, allocation total errors, and unit mismatches. Advisory mode (warnings only) | <span class="badge badge-free">No API</span> |
+| **[Discord-WhatsApp Bridge]({{ '/en/skills/discord-whatsapp-bridge/' | relative_url }})** | Forwards trading alerts from Discord channels to a WhatsApp number via a Node.js bridge with channel mapping, keyword filtering, rate limiting, and a Python config validator | <span class="badge badge-free">No API</span> |
 | **Dual-Axis Skill Reviewer** | Reviews skill quality using dual-axis method: deterministic auto scoring (5-category, 0-100) + optional LLM deep review. Powers the automated skill improvement loop | <span class="badge badge-free">No API</span> |
 | **Skill Designer** | Designs new Claude skills from structured idea specifications. Produces complete skill directories (SKILL.md, references, scripts, tests) following repository conventions | <span class="badge badge-free">No API</span> |
 | **Skill Idea Miner** | Mines Claude Code session logs for skill idea candidates. Extracts, scores, and backlogs new skill ideas from recent coding sessions | <span class="badge badge-free">No API</span> |
@@ -258,5 +259,6 @@ A comprehensive catalog of all 55 Claude Trading Skills organized by category. B
 | Trading Skills Navigator | -- | -- | -- |
 | Trade Performance Coach | -- | -- | -- |
 | Chart Pattern Scanner | -- | -- | -- |
+| Discord Whatsapp Bridge | -- | -- | -- |
 
 "--" means not required. "Optional" means functionality is enhanced but the skill works without it.

@@ -66,6 +66,32 @@
       "timeframe": "weekly"
     },
     {
+      "category": "swing-opportunity",
+      "difficulty": "intermediate",
+      "display_name": "Chart Pattern Scanner",
+      "id": "chart-pattern-scanner",
+      "integrations": [
+        {
+          "id": "chart_image",
+          "requirement": "optional",
+          "type": "image"
+        },
+        {
+          "id": "ohlcv_csv",
+          "requirement": "optional",
+          "type": "local_file"
+        },
+        {
+          "id": "yfinance",
+          "requirement": "not_required",
+          "type": "market_data"
+        }
+      ],
+      "status": "production",
+      "summary": "Scan candlestick charts for classic patterns (engulfing, hammer, doji, morning/evening star, three soldiers/crows) and classify the setup as BUY/SELL/NEUTRAL via vision plus a deterministic rule-based detector. Inspired by ChartScanAI's YOLOv8 candlestick detector.",
+      "timeframe": "daily"
+    },
+    {
       "category": "meta",
       "difficulty": "beginner",
       "display_name": "Data Quality Checker",
@@ -79,6 +105,27 @@
       ],
       "status": "production",
       "summary": "Validate data quality in market analysis documents and blog articles before publication.",
+      "timeframe": "event-driven"
+    },
+    {
+      "category": "meta",
+      "difficulty": "intermediate",
+      "display_name": "Discord-WhatsApp Bridge",
+      "id": "discord-whatsapp-bridge",
+      "integrations": [
+        {
+          "id": "discord",
+          "requirement": "required",
+          "type": "web"
+        },
+        {
+          "id": "whatsapp",
+          "requirement": "required",
+          "type": "web"
+        }
+      ],
+      "status": "production",
+      "summary": "Set up and operate a Discord-to-WhatsApp bridge that forwards trading alerts from Discord channels to a WhatsApp number.",
       "timeframe": "event-driven"
     },
     {
