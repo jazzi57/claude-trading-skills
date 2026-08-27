@@ -19,7 +19,11 @@ repos:
     hooks:
       - id: ruff
         args: [--fix]
+        # strategies/ holds vendored third-party strategy code kept byte-faithful
+        # to its upstream (MIT) source; do not lint or auto-fix it.
+        exclude: '^strategies/'
       - id: ruff-format
+        exclude: '^strategies/'
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
@@ -27,6 +31,7 @@ repos:
       - id: codespell
         args: [--skip, ".venv,*.json,*.csv,*.baseline,skill-packages,*.pyc,__pycache__",
                --ignore-words-list, "trough,ore,cna,acn,blok,hims,pont,claus,theses"]
+        exclude: '^strategies/'
 
   - repo: https://github.com/Yelp/detect-secrets
     rev: v1.5.0
